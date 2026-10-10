@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  /* Font */
+  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+
+  /* Your palette */
+  --color-base: #0e0f13; /* page background */
+  --color-raised: #17191f; /* cards */
+  --color-overlay: #1f222b; /* inputs, dropdowns */
+  --color-edge: #2a2e39; /* borders */
+  --color-ink: #f2f1ee; /* primary text */
+  --color-mute: #9aa0ac; /* secondary text */
+  --color-accent: #ff6a55;
+  --color-success: #4ade80;
+  --color-warning: #f5b944;
+  --color-danger: #f0616d;
+}
+
+body {
+  @apply bg-base text-ink font-sans antialiased;
+}
