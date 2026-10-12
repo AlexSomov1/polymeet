@@ -135,3 +135,14 @@ async def test_request_log_omits_user_for_anonymous_request(
     [record] = [r for r in read_log_records(capsys) if r["event"] == "http_request"]
     assert "user_id" not in record
     assert "cache" not in record
+
+
+async def test_request_log_has_full_template_for_nested_router(
+    client: httpx.AsyncClient, capsys: pytest.CaptureFixture[str]
+) -> None:
+    capsys.readouterr()
+
+    await client.get("/api/v1/meetings/42")
+
+    [record] = [r for r in read_log_records(capsys) if r["event"] == "http_request"]
+    assert record["path"] == "/api/v1/meetings/{meeting_id}"

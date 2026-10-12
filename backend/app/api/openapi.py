@@ -1,5 +1,6 @@
 """Настройка OpenAPI: описания, operationId и приведение ответов-ошибок к RFC 9457."""
 
+import json
 from typing import Any
 
 from fastapi import FastAPI
@@ -67,3 +68,8 @@ def install_openapi(app: FastAPI) -> None:
         return schema
 
     app.openapi = openapi  # type: ignore[method-assign]
+
+
+def render_openapi(app: FastAPI) -> str:
+    """Текст backend/openapi.json: ключи отсортированы, отступ 2."""
+    return json.dumps(app.openapi(), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
