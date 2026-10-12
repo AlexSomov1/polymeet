@@ -25,14 +25,13 @@ def upgrade() -> None:
 
     op.create_table(
         "users",
-        sa.Column("id", sa.String(26), nullable=False),
+        sa.Column("id", sa.BigInteger(), sa.Identity(), nullable=False),
         sa.Column("email", postgresql.CITEXT(), nullable=False),
         sa.Column("password_hash", sa.Text(), nullable=False),
         sa.Column("display_name", sa.Text(), nullable=False),
         sa.Column("role", sa.SmallInteger(), server_default="0", nullable=False),
-        sa.Column("themes_created", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("themes_attended", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("attendance_rate", sa.Numeric(4, 3), server_default="0", nullable=False),
+        sa.Column("attended_count", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("marked_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -46,8 +45,8 @@ def upgrade() -> None:
             name=op.f("ck_users_display_name_length"),
         ),
         sa.CheckConstraint(
-            "attendance_rate BETWEEN 0 AND 1",
-            name=op.f("ck_users_attendance_rate_range"),
+            "attended_count BETWEEN 0 AND marked_count",
+            name=op.f("ck_users_attendance_counts"),
         ),
     )
 

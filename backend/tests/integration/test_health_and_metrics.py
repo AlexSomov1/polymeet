@@ -70,7 +70,7 @@ async def test_metrics_expose_request_duration_histogram(
     client: httpx.AsyncClient,
 ) -> None:
     await client.get("/health")
-    await client.get("/openapi.json")
+    await client.get("/api/openapi.json")
 
     response = await client.get("/metrics")
 
@@ -79,7 +79,7 @@ async def test_metrics_expose_request_duration_histogram(
         float(line.split('le="')[1].split('"')[0])
         for line in response.text.splitlines()
         if line.startswith("http_request_duration_seconds_bucket{")
-        and 'handler="/openapi.json"' in line
+        and 'handler="/api/openapi.json"' in line
     }
     assert buckets == {0.02, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.5, 1, 2, float("inf")}
     assert 'handler="/health' not in response.text
@@ -87,7 +87,7 @@ async def test_metrics_expose_request_duration_histogram(
 
 
 async def test_metrics_endpoint_is_not_in_openapi(client: httpx.AsyncClient) -> None:
-    paths = (await client.get("/openapi.json")).json()["paths"]
+    paths = (await client.get("/api/openapi.json")).json()["paths"]
 
     assert "/metrics" not in paths
     assert {"/health", "/health/ready"} <= set(paths)

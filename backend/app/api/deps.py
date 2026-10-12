@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,6 +13,10 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 
 _bearer = HTTPBearer(auto_error=False, description="Access-токен, выданный /auth/login")
+
+# openapi_extra для роутов с OptionalUser: FastAPI дописывает {} к требованиям Bearer,
+# и в OpenAPI запрос без токена тоже становится допустимым.
+OPTIONAL_AUTH: dict[str, Any] = {"security": [{}]}
 
 
 async def get_app_settings(request: Request) -> Settings:
@@ -38,7 +42,9 @@ async def get_current_user_optional(
     if credentials is None:
         return None
     claims = decode_token(credentials.credentials, "access", settings=settings)
-    user = await UserRepository(session).get_by_id(claims.sub)
+    # sub в JWT — строка; id пользователя — число
+    user_id = int(claims.sub) if claims.sub.isdigit() else None
+    user = await UserRepository(session).get_by_id(user_id) if user_id else None
     if user is None:
         raise UnauthorizedError(INVALID_TOKEN_MESSAGE)
     bind_request_context(user_id=user.id)

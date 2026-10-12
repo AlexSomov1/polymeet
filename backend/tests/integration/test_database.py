@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import AsyncIterator
-from decimal import Decimal
 
 import pytest
 from alembic import command
@@ -115,26 +114,31 @@ async def test_display_name_length_is_checked_by_database(
 
 
 @pytest.mark.parametrize(
-    ("rate", "allowed"),
-    [("-0.001", False), ("0", True), ("1", True), ("1.001", False)],
+    ("attended", "marked", "allowed"),
+    [(0, 0, True), (3, 5, True), (5, 5, True), (6, 5, False), (-1, 0, False)],
 )
-async def test_attendance_rate_range_is_checked_by_database(
-    engine: AsyncEngine, create_user: CreateUser, rate: str, allowed: bool
+async def test_attendance_counters_are_checked_by_database(
+    engine: AsyncEngine, create_user: CreateUser, attended: int, marked: int, allowed: bool
 ) -> None:
     user = await create_user()
-    update = text("UPDATE users SET attendance_rate = :rate WHERE id = :id")
+    update = text("UPDATE users SET attended_count = :a, marked_count = :m WHERE id = :id")
+    values = {"a": attended, "m": marked, "id": user.id}
 
     async with engine.begin() as conn:
         if allowed:
-            await conn.execute(update, {"rate": Decimal(rate), "id": user.id})
+            await conn.execute(update, values)
         else:
-            with pytest.raises(IntegrityError, match="ck_users_attendance_rate_range"):
-                await conn.execute(update, {"rate": Decimal(rate), "id": user.id})
+            with pytest.raises(IntegrityError, match="ck_users_attendance_counts"):
+                await conn.execute(update, values)
 
 
 async def test_new_user_gets_database_defaults(create_user: CreateUser) -> None:
-    user = await create_user()
+    first = await create_user()
+    second = await create_user()
 
-    assert (user.role, user.themes_created, user.themes_attended) == (0, 0, 0)
-    assert user.attendance_rate == Decimal(0)
-    assert user.created_at.tzinfo is not None
+    assert isinstance(first.id, int)
+    assert second.id > first.id
+    assert (first.role, first.attended_count, first.marked_count) == (0, 0, 0)
+    # Пока явку не отмечали, надёжность не определена
+    assert first.attendance_rate is None
+    assert first.created_at.tzinfo is not None
