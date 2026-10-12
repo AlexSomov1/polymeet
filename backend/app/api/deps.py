@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,6 +13,10 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 
 _bearer = HTTPBearer(auto_error=False, description="Access-токен, выданный /auth/login")
+
+# openapi_extra для роутов с OptionalUser: FastAPI дописывает {} к требованиям Bearer,
+# и в OpenAPI запрос без токена тоже становится допустимым.
+OPTIONAL_AUTH: dict[str, Any] = {"security": [{}]}
 
 
 async def get_app_settings(request: Request) -> Settings:

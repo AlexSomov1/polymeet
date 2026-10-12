@@ -4,7 +4,9 @@ import time
 from typing import Any
 
 import structlog
+from prometheus_fastapi_instrumentator.routing import get_route_name
 from starlette.datastructures import Headers, MutableHeaders
+from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.errors import PROBLEM_JSON, InternalError, problem_details
@@ -67,10 +69,13 @@ class RequestContextMiddleware:
 
 
 def _route_path(scope: Scope) -> str:
-    """Шаблон маршрута (``/themes/{id}``), если роутер его определил, иначе путь."""
-    route = scope.get("route")
-    template = getattr(route, "path", None)
-    return template if isinstance(template, str) else str(scope["path"])
+    """Полный шаблон маршрута (``/api/v1/meetings/{meeting_id}``), иначе фактический путь.
+
+    Шаблон считает та же функция, что и метку ``handler`` в метриках: она учитывает
+    префиксы вложенных роутеров, которых нет в ``scope["route"].path``.
+    """
+    template = get_route_name(Request(scope), should_include_root_path=False)
+    return template or str(scope["path"])
 
 
 async def _send_internal_error(scope: Scope, send: Send) -> None:

@@ -1,4 +1,1223 @@
 {
+  "components": {
+    "schemas": {
+      "ApplicantOut": {
+        "properties": {
+          "attendance_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance Rate"
+          },
+          "attended_count": {
+            "title": "Attended Count",
+            "type": "integer"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "attendance_rate",
+          "attended_count"
+        ],
+        "title": "ApplicantOut",
+        "type": "object"
+      },
+      "ApplicationCreate": {
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Сообщение организатору",
+            "title": "Message"
+          }
+        },
+        "title": "ApplicationCreate",
+        "type": "object"
+      },
+      "ApplicationOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "meeting_id": {
+            "title": "Meeting Id",
+            "type": "integer"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          },
+          "user": {
+            "$ref": "#/components/schemas/ApplicantOut"
+          }
+        },
+        "required": [
+          "id",
+          "meeting_id",
+          "status",
+          "message",
+          "created_at",
+          "decided_at",
+          "user"
+        ],
+        "title": "ApplicationOut",
+        "type": "object"
+      },
+      "ApplicationPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApplicationOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Курсор следующей страницы; `null`, если страниц больше нет",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ApplicationPage",
+        "type": "object"
+      },
+      "ApplicationStatus": {
+        "enum": [
+          "pending",
+          "accepted",
+          "rejected",
+          "waitlist",
+          "withdrawn"
+        ],
+        "title": "ApplicationStatus",
+        "type": "string"
+      },
+      "AuthResponse": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "expires_in": {
+            "description": "Срок жизни access-токена, секунды",
+            "examples": [
+              900
+            ],
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "refresh_token": {
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "token_type": {
+            "const": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "token_type",
+          "expires_in",
+          "user"
+        ],
+        "title": "AuthResponse",
+        "type": "object"
+      },
+      "CategoryOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "slug": {
+            "examples": [
+              "games"
+            ],
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "examples": [
+              "Игры"
+            ],
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title"
+        ],
+        "title": "CategoryOut",
+        "type": "object"
+      },
+      "DecisionIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "title": "Decision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "DecisionIn",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "VALIDATION_ERROR",
+          "UNAUTHORIZED",
+          "INVALID_CREDENTIALS",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "EMAIL_TAKEN",
+          "ALREADY_APPLIED",
+          "CAPACITY_REACHED",
+          "INVALID_TRANSITION",
+          "MEETING_NOT_PUBLISHED",
+          "RATE_LIMITED",
+          "HTTP_ERROR",
+          "INTERNAL_ERROR",
+          "NOT_IMPLEMENTED",
+          "DEPENDENCY_UNAVAILABLE"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "FieldError": {
+        "properties": {
+          "field": {
+            "description": "Поле запроса: `email`, `limit`, `lat` и т. п.",
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "FieldError",
+        "type": "object"
+      },
+      "GeoStatus": {
+        "enum": [
+          "pending",
+          "resolved",
+          "manual",
+          "failed"
+        ],
+        "title": "GeoStatus",
+        "type": "string"
+      },
+      "LocationIn": {
+        "properties": {
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "LocationIn",
+        "type": "object"
+      },
+      "LoginIn": {
+        "properties": {
+          "email": {
+            "examples": [
+              "student@edu.spbstu.ru"
+            ],
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginIn",
+        "type": "object"
+      },
+      "MeetingBrief": {
+        "properties": {
+          "accepted_count": {
+            "title": "Accepted Count",
+            "type": "integer"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MeetingStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "starts_at",
+          "status",
+          "accepted_count",
+          "capacity"
+        ],
+        "title": "MeetingBrief",
+        "type": "object"
+      },
+      "MeetingCreate": {
+        "properties": {
+          "address": {
+            "examples": [
+              "Санкт-Петербург, Политехническая ул., 29"
+            ],
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Address",
+            "type": "string"
+          },
+          "address_hint": {
+            "anyOf": [
+              {
+                "description": "Как найти место",
+                "examples": [
+                  "вход со двора"
+                ],
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Hint"
+          },
+          "auto_accept": {
+            "default": false,
+            "description": "Принимать заявки без решения",
+            "title": "Auto Accept",
+            "type": "boolean"
+          },
+          "capacity": {
+            "description": "Лимит участников",
+            "maximum": 100.0,
+            "minimum": 2.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "category": {
+            "description": "slug категории из `GET /categories`",
+            "examples": [
+              "games"
+            ],
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z0-9_-]+$",
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "duration_minutes": {
+            "description": "Длительность, минуты",
+            "maximum": 720.0,
+            "minimum": 15.0,
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "starts_at": {
+            "description": "Начало встречи, в будущем, со смещением",
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "title": {
+            "examples": [
+              "Настолки в «Кубе»"
+            ],
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "category",
+          "starts_at",
+          "duration_minutes",
+          "address",
+          "capacity"
+        ],
+        "title": "MeetingCreate",
+        "type": "object"
+      },
+      "MeetingListItem": {
+        "properties": {
+          "accepted_count": {
+            "title": "Accepted Count",
+            "type": "integer"
+          },
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "category": {
+            "description": "slug категории",
+            "title": "Category",
+            "type": "string"
+          },
+          "distance_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Расстояние до точки из запроса, км; `null`, если точка не задана",
+            "title": "Distance Km"
+          },
+          "duration_minutes": {
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "free_places": {
+            "title": "Free Places",
+            "type": "integer"
+          },
+          "geo_status": {
+            "$ref": "#/components/schemas/GeoStatus"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null`, пока адрес не геокодирован",
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "organizer": {
+            "$ref": "#/components/schemas/OrganizerBrief"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MeetingStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "geo_status",
+          "title",
+          "category",
+          "starts_at",
+          "duration_minutes",
+          "address",
+          "lat",
+          "lon",
+          "capacity",
+          "accepted_count",
+          "free_places",
+          "organizer",
+          "distance_km"
+        ],
+        "title": "MeetingListItem",
+        "type": "object"
+      },
+      "MeetingOut": {
+        "properties": {
+          "accepted_count": {
+            "title": "Accepted Count",
+            "type": "integer"
+          },
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "address_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Hint"
+          },
+          "address_norm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Адрес, как его понял геокодер",
+            "title": "Address Norm"
+          },
+          "auto_accept": {
+            "title": "Auto Accept",
+            "type": "boolean"
+          },
+          "capacity": {
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "category": {
+            "description": "slug категории",
+            "title": "Category",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "duration_minutes": {
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "free_places": {
+            "title": "Free Places",
+            "type": "integer"
+          },
+          "geo_status": {
+            "$ref": "#/components/schemas/GeoStatus"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "my_application": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MyApplicationOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Заявка текущего пользователя; `null` без авторизации или без заявки"
+          },
+          "organizer": {
+            "$ref": "#/components/schemas/OrganizerOut"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MeetingStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "geo_status",
+          "title",
+          "description",
+          "category",
+          "starts_at",
+          "duration_minutes",
+          "address",
+          "address_hint",
+          "address_norm",
+          "lat",
+          "lon",
+          "capacity",
+          "accepted_count",
+          "free_places",
+          "auto_accept",
+          "organizer",
+          "my_application",
+          "created_at"
+        ],
+        "title": "MeetingOut",
+        "type": "object"
+      },
+      "MeetingPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MeetingListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Курсор следующей страницы; `null`, если страниц больше нет",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "MeetingPage",
+        "type": "object"
+      },
+      "MeetingStatus": {
+        "enum": [
+          "draft",
+          "published",
+          "cancelled",
+          "finished"
+        ],
+        "title": "MeetingStatus",
+        "type": "string"
+      },
+      "MeetingUpdate": {
+        "description": "Частичное изменение: передаются только меняемые поля.\n\n`null` допустим только для `address_hint`. Смена `address` сбрасывает координаты,\nвстреча снова геокодируется. `status` публикует или отменяет встречу.\nСервис берёт изменения через ``model_dump(exclude_unset=True)``.",
+        "properties": {
+          "address": {
+            "examples": [
+              "Санкт-Петербург, Политехническая ул., 29"
+            ],
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Address",
+            "type": "string"
+          },
+          "address_hint": {
+            "anyOf": [
+              {
+                "description": "Как найти место",
+                "examples": [
+                  "вход со двора"
+                ],
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Hint"
+          },
+          "auto_accept": {
+            "title": "Auto Accept",
+            "type": "boolean"
+          },
+          "capacity": {
+            "description": "Лимит участников",
+            "maximum": 100.0,
+            "minimum": 2.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "category": {
+            "description": "slug категории из `GET /categories`",
+            "examples": [
+              "games"
+            ],
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[a-z0-9_-]+$",
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "duration_minutes": {
+            "description": "Длительность, минуты",
+            "maximum": 720.0,
+            "minimum": 15.0,
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "published",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "examples": [
+              "Настолки в «Кубе»"
+            ],
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "MeetingUpdate",
+        "type": "object"
+      },
+      "MyApplicationItem": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/MeetingBrief"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "message",
+          "created_at",
+          "decided_at",
+          "meeting"
+        ],
+        "title": "MyApplicationItem",
+        "type": "object"
+      },
+      "MyApplicationOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApplicationStatus"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "MyApplicationOut",
+        "type": "object"
+      },
+      "MyApplicationPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MyApplicationItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Курсор следующей страницы; `null`, если страниц больше нет",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "MyApplicationPage",
+        "type": "object"
+      },
+      "OrganizerBrief": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "OrganizerBrief",
+        "type": "object"
+      },
+      "OrganizerOut": {
+        "properties": {
+          "attendance_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance Rate"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "attendance_rate"
+        ],
+        "title": "OrganizerOut",
+        "type": "object"
+      },
+      "ProblemDetails": {
+        "description": "Ошибка в формате RFC 9457 (`application/problem+json`).\n\nКлиент различает ошибки по `code`; `detail` — текст для пользователя.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "detail": {
+            "examples": [
+              "Некорректные данные запроса"
+            ],
+            "title": "Detail",
+            "type": "string"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FieldError"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ошибки по полям; только для `VALIDATION_ERROR`",
+            "title": "Errors"
+          },
+          "instance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Путь запроса",
+            "title": "Instance"
+          },
+          "status": {
+            "description": "HTTP-статус ответа",
+            "examples": [
+              400
+            ],
+            "title": "Status",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Текст HTTP-статуса",
+            "examples": [
+              "Bad Request"
+            ],
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "Всегда `about:blank`",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "detail",
+          "code"
+        ],
+        "title": "ProblemDetails",
+        "type": "object"
+      },
+      "PublicUserOut": {
+        "properties": {
+          "attendance_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance Rate"
+          },
+          "attended_count": {
+            "title": "Attended Count",
+            "type": "integer"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "marked_count": {
+            "title": "Marked Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "attended_count",
+          "marked_count",
+          "attendance_rate"
+        ],
+        "title": "PublicUserOut",
+        "type": "object"
+      },
+      "RefreshIn": {
+        "properties": {
+          "refresh_token": {
+            "minLength": 1,
+            "title": "Refresh Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshIn",
+        "type": "object"
+      },
+      "RegisterIn": {
+        "properties": {
+          "display_name": {
+            "examples": [
+              "Гриша"
+            ],
+            "maxLength": 50,
+            "minLength": 2,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "examples": [
+              "student@edu.spbstu.ru"
+            ],
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "display_name"
+        ],
+        "title": "RegisterIn",
+        "type": "object"
+      },
+      "UserOut": {
+        "properties": {
+          "attendance_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Надёжность: attended_count / marked_count; `null`, пока отметок нет",
+            "title": "Attendance Rate"
+          },
+          "attended_count": {
+            "description": "На скольких отмеченных встречах участник был",
+            "title": "Attended Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "marked_count": {
+            "description": "На скольких встречах ему отмечали явку",
+            "title": "Marked Count",
+            "type": "integer"
+          },
+          "role": {
+            "description": "Роль: 0 — обычный пользователь",
+            "title": "Role",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "role",
+          "attended_count",
+          "marked_count",
+          "attendance_rate",
+          "created_at"
+        ],
+        "title": "UserOut",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "description": "Access-токен, выданный /auth/login",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
   "info": {
     "description": "API платформы офлайн-встреч студентов PolyMeet.\n\n* Авторизация: заголовок `Authorization: Bearer <access_token>` (токены выдаёт `/auth/login`).\n* Ошибки: RFC 9457, `application/problem+json`; клиент различает их по полю `code`.\n  Ошибки валидации — 400 `VALIDATION_ERROR` с разбором по полям в `errors`.\n* Списки: курсорная пагинация, `{items, next_cursor}`; следующая страница — `?cursor=<next_cursor>`.\n* Время: ISO 8601 со смещением; идентификаторы — целые числа.\n* Целевое время ответа (p95) указано в описании каждой операции.\n",
     "title": "PolyMeet API",
@@ -6,6 +1225,1848 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/applications/{application_id}/decision": {
+      "post": {
+        "description": "Только организатор. Отказ принятой заявке освобождает место для листа ожидания.\n\nЦелевое время ответа: p95 ≤ 300 мс.",
+        "operationId": "decide_application",
+        "parameters": [
+          {
+            "description": "id заявки",
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "description": "id заявки",
+              "minimum": 1,
+              "title": "Application Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`FORBIDDEN` — Недостаточно прав"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`CAPACITY_REACHED` — Свободных мест нет; `INVALID_TRANSITION` — Недопустимый переход статуса"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Принять или отклонить заявку",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Неверный пароль и несуществующий e-mail дают одинаковый ответ. После 5 неудачных попыток с одного IP — 429 с заголовком `Retry-After`.\n\nЦелевое время ответа: p95 ≤ 500 мс.",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`INVALID_CREDENTIALS` — Неверный e-mail или пароль"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`RATE_LIMITED` — Слишком много попыток, повторите позже"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "summary": "Вход",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Отзывает переданный refresh-токен.\n\nЦелевое время ответа: p95 ≤ 500 мс.",
+        "operationId": "logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DEPENDENCY_UNAVAILABLE` — Сервис временно недоступен"
+          }
+        },
+        "summary": "Выход",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "Ротация: старый refresh-токен отзывается, выдаётся новая пара. Повторное использование старого токена — 401.\n\nЦелевое время ответа: p95 ≤ 500 мс.",
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DEPENDENCY_UNAVAILABLE` — Сервис временно недоступен"
+          }
+        },
+        "summary": "Обновление токенов",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "Создаёт пользователя и сразу выдаёт пару токенов.\n\nЦелевое время ответа: p95 ≤ 500 мс.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`EMAIL_TAKEN` — Этот e-mail уже зарегистрирован"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "summary": "Регистрация",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "description": "Целевое время ответа: p95 ≤ 150 мс.",
+        "operationId": "list_categories",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryOut"
+                  },
+                  "title": "Response List Categories",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "summary": "Категории встреч",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/api/v1/meetings": {
+      "get": {
+        "description": "Опубликованные будущие встречи по времени начала. `lat`, `lon` и `radius_km` задаются только вместе; тогда в ответе есть `distance_km`.\n\nЦелевое время ответа: p95 ≤ 200 мс.",
+        "operationId": "list_meetings",
+        "parameters": [
+          {
+            "description": "slug категории",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "description": "slug категории из `GET /categories`",
+                  "examples": [
+                    "games"
+                  ],
+                  "maxLength": 32,
+                  "minLength": 1,
+                  "pattern": "^[a-z0-9_-]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "slug категории",
+              "title": "Category"
+            }
+          },
+          {
+            "description": "День начала встречи (`YYYY-MM-DD`) по времени Москвы",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "День начала встречи (`YYYY-MM-DD`) по времени Москвы",
+              "title": "Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 90,
+                  "minimum": -90,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 180,
+                  "minimum": -180,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          },
+          {
+            "description": "Радиус, км",
+            "in": "query",
+            "name": "radius_km",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Радиус, км",
+              "title": "Radius Km"
+            }
+          },
+          {
+            "description": "Только встречи со свободными местами",
+            "in": "query",
+            "name": "has_free_places",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Только встречи со свободными местами",
+              "title": "Has Free Places",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Поиск",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Поиск",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "`next_cursor` из предыдущей страницы",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` из предыдущей страницы",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Размер страницы",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Размер страницы",
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ],
+        "summary": "Лента встреч",
+        "tags": [
+          "meetings"
+        ]
+      },
+      "post": {
+        "description": "Встреча создаётся черновиком. Адрес геокодируется в фоне: пока координат нет, `geo_status` равен `pending`.\n\nЦелевое время ответа: p95 ≤ 300 мс.",
+        "operationId": "create_meeting",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Создание встречи",
+        "tags": [
+          "meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings/map": {
+      "get": {
+        "description": "Опубликованные будущие встречи с координатами внутри видимой области карты, по времени начала, без пагинации.\n\nЦелевое время ответа: p95 ≤ 200 мс.",
+        "operationId": "list_meetings_on_map",
+        "parameters": [
+          {
+            "description": "Видимая область: `min_lon,min_lat,max_lon,max_lat`",
+            "in": "query",
+            "name": "bbox",
+            "required": true,
+            "schema": {
+              "description": "Видимая область: `min_lon,min_lat,max_lon,max_lat`",
+              "examples": [
+                "30.25,59.90,30.45,60.05"
+              ],
+              "pattern": "^-?\\d+(\\.\\d+)?(,-?\\d+(\\.\\d+)?){3}$",
+              "title": "Bbox",
+              "type": "string"
+            }
+          },
+          {
+            "description": "slug категории",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "description": "slug категории из `GET /categories`",
+                  "examples": [
+                    "games"
+                  ],
+                  "maxLength": 32,
+                  "minLength": 1,
+                  "pattern": "^[a-z0-9_-]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "slug категории",
+              "title": "Category"
+            }
+          },
+          {
+            "description": "День начала встречи (`YYYY-MM-DD`) по времени Москвы",
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "День начала встречи (`YYYY-MM-DD`) по времени Москвы",
+              "title": "Date"
+            }
+          },
+          {
+            "description": "Только встречи со свободными местами",
+            "in": "query",
+            "name": "has_free_places",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Только встречи со свободными местами",
+              "title": "Has Free Places",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Максимум точек",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "description": "Максимум точек",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MeetingListItem"
+                  },
+                  "title": "Response List Meetings On Map",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ],
+        "summary": "Встречи на карте",
+        "tags": [
+          "meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings/{meeting_id}": {
+      "get": {
+        "description": "Черновик виден только организатору; для остальных — 404.\n\nЦелевое время ответа: p95 ≤ 150 мс.",
+        "operationId": "get_meeting",
+        "parameters": [
+          {
+            "description": "id встречи",
+            "in": "path",
+            "name": "meeting_id",
+            "required": true,
+            "schema": {
+              "description": "id встречи",
+              "minimum": 1,
+              "title": "Meeting Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ],
+        "summary": "Карточка встречи",
+        "tags": [
+          "meetings"
+        ]
+      },
+      "patch": {
+        "description": "Только организатор. Переходы статуса: `draft → published`, `draft → cancelled`, `published → cancelled`. Отменённую встречу менять нельзя.\n\nЦелевое время ответа: p95 ≤ 300 мс.",
+        "operationId": "update_meeting",
+        "parameters": [
+          {
+            "description": "id встречи",
+            "in": "path",
+            "name": "meeting_id",
+            "required": true,
+            "schema": {
+              "description": "id встречи",
+              "minimum": 1,
+              "title": "Meeting Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`FORBIDDEN` — Недостаточно прав"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`INVALID_TRANSITION` — Недопустимый переход статуса"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Правка, публикация, отмена",
+        "tags": [
+          "meetings"
+        ]
+      }
+    },
+    "/api/v1/meetings/{meeting_id}/applications": {
+      "get": {
+        "description": "Только организатор. Очередь в порядке подачи.\n\nЦелевое время ответа: p95 ≤ 200 мс.",
+        "operationId": "list_meeting_applications",
+        "parameters": [
+          {
+            "description": "id встречи",
+            "in": "path",
+            "name": "meeting_id",
+            "required": true,
+            "schema": {
+              "description": "id встречи",
+              "minimum": 1,
+              "title": "Meeting Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Фильтр по статусу",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ApplicationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по статусу",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "`next_cursor` из предыдущей страницы",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` из предыдущей страницы",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Размер страницы",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Размер страницы",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`FORBIDDEN` — Недостаточно прав"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Заявки на мою встречу",
+        "tags": [
+          "applications"
+        ]
+      },
+      "post": {
+        "description": "Статус новой заявки: `accepted` при автоприёме, `waitlist`, если мест нет, иначе `pending`. Повторная заявка — 409; после отзыва можно подать снова.\n\nЦелевое время ответа: p95 ≤ 300 мс.",
+        "operationId": "apply_to_meeting",
+        "parameters": [
+          {
+            "description": "id встречи",
+            "in": "path",
+            "name": "meeting_id",
+            "required": true,
+            "schema": {
+              "description": "id встречи",
+              "minimum": 1,
+              "title": "Meeting Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ApplicationCreate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`FORBIDDEN` — Недостаточно прав"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`ALREADY_APPLIED` — Заявка на эту встречу уже подана"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`MEETING_NOT_PUBLISHED` — Встреча не опубликована, отменена или уже началась"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Подать заявку",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/meetings/{meeting_id}/applications/me": {
+      "delete": {
+        "description": "Отзывает мою заявку (`withdrawn`). Если она была принята, место получает первый из листа ожидания.\n\nЦелевое время ответа: p95 ≤ 300 мс.",
+        "operationId": "withdraw_my_application",
+        "parameters": [
+          {
+            "description": "id встречи",
+            "in": "path",
+            "name": "meeting_id",
+            "required": true,
+            "schema": {
+              "description": "id встречи",
+              "minimum": 1,
+              "title": "Meeting Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`INVALID_TRANSITION` — Недопустимый переход статуса"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Отменить участие",
+        "tags": [
+          "applications"
+        ]
+      }
+    },
+    "/api/v1/meetings/{meeting_id}/location": {
+      "put": {
+        "description": "Только организатор, не для отменённых встреч. `geo_status` становится `manual`.\n\nЦелевое время ответа: p95 ≤ 300 мс.",
+        "operationId": "set_meeting_location",
+        "parameters": [
+          {
+            "description": "id встречи",
+            "in": "path",
+            "name": "meeting_id",
+            "required": true,
+            "schema": {
+              "description": "id встречи",
+              "minimum": 1,
+              "title": "Meeting Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`FORBIDDEN` — Недостаточно прав"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`INVALID_TRANSITION` — Недопустимый переход статуса"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Точка на карте вручную",
+        "tags": [
+          "meetings"
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "description": "Целевое время ответа: p95 ≤ 150 мс.",
+        "operationId": "get_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Мой профиль",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/applications": {
+      "get": {
+        "description": "Мои заявки с краткой информацией о встрече; новые сначала.\n\nЦелевое время ответа: p95 ≤ 200 мс.",
+        "operationId": "list_my_applications",
+        "parameters": [
+          {
+            "description": "Фильтр по статусу",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ApplicationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Фильтр по статусу",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "`next_cursor` из предыдущей страницы",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` из предыдущей страницы",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Размер страницы",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Размер страницы",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyApplicationPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Мои заявки",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/meetings": {
+      "get": {
+        "description": "Встречи, где я организатор, во всех статусах; новые сначала.\n\nЦелевое время ответа: p95 ≤ 200 мс.",
+        "operationId": "list_my_meetings",
+        "parameters": [
+          {
+            "description": "`next_cursor` из предыдущей страницы",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` из предыдущей страницы",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Размер страницы",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Размер страницы",
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Мои встречи",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "description": "Целевое время ответа: p95 ≤ 150 мс.",
+        "operationId": "get_user",
+        "parameters": [
+          {
+            "description": "id пользователя",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "description": "id пользователя",
+              "minimum": 1,
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicUserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`VALIDATION_ERROR` — Некорректные данные запроса"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`UNAUTHORIZED` — Требуется авторизация"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_FOUND` — Объект не найден"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`NOT_IMPLEMENTED` — Эндпоинт ещё не реализован"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {}
+        ],
+        "summary": "Публичный профиль",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health",

@@ -44,6 +44,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_tags=OPENAPI_TAGS,
         # Документация под /api, как в README: nginx проксирует на API весь /api/
         docs_url="/api/docs",
+        swagger_ui_oauth2_redirect_url="/api/docs/oauth2-redirect",
         redoc_url=None,
         openapi_url="/api/openapi.json",
         generate_unique_id_function=operation_id,
