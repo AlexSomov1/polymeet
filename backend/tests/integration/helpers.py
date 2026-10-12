@@ -84,11 +84,11 @@ def add_probe_routes(app: FastAPI) -> None:
         raise RuntimeError("secret internal detail")
 
     @router.get("/me")
-    async def me(user: CurrentUser) -> dict[str, str]:
+    async def me(user: CurrentUser) -> dict[str, int]:
         return {"id": user.id}
 
     @router.get("/maybe-me")
-    async def maybe_me(user: OptionalUser) -> dict[str, str | None]:
+    async def maybe_me(user: OptionalUser) -> dict[str, int | None]:
         return {"id": user.id if user else None}
 
     @router.get("/items/{item_id}")

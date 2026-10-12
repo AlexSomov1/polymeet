@@ -41,7 +41,15 @@ async def _delete_user(engine: AsyncEngine, user: User) -> None:
 
 @pytest.mark.parametrize(
     "case",
-    ["no_token", "not_bearer", "expired", "forged", "refresh_token", "deleted_user"],
+    [
+        "no_token",
+        "not_bearer",
+        "expired",
+        "forged",
+        "refresh_token",
+        "non_numeric_subject",
+        "deleted_user",
+    ],
 )
 async def test_current_user_rejects_invalid_credentials(
     client: httpx.AsyncClient,
@@ -57,8 +65,9 @@ async def test_current_user_rejects_invalid_credentials(
         "no_token": {},
         "not_bearer": {"Authorization": "Basic dXNlcjpwYXNz"},
         "expired": auth_headers(user, ttl=timedelta(seconds=-1)),
-        "forged": _bearer(create_token(user.id, "access", settings=forger)),
-        "refresh_token": _bearer(create_token(user.id, "refresh", settings=settings)),
+        "forged": _bearer(create_token(str(user.id), "access", settings=forger)),
+        "refresh_token": _bearer(create_token(str(user.id), "refresh", settings=settings)),
+        "non_numeric_subject": _bearer(create_token("not-a-number", "access", settings=settings)),
         "deleted_user": auth_headers(user),
     }[case]
     if case == "deleted_user":

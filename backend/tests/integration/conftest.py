@@ -157,7 +157,7 @@ def create_user(engine: AsyncEngine, settings: Settings) -> CreateUser:
 @pytest.fixture
 def auth_headers(settings: Settings) -> AuthHeaders:
     def _auth_headers(user: User, ttl: timedelta | None = None) -> dict[str, str]:
-        token = create_token(user.id, "access", ttl, settings=settings)
+        token = create_token(str(user.id), "access", ttl, settings=settings)
         return {"Authorization": f"Bearer {token}"}
 
     return _auth_headers

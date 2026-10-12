@@ -1,7 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.ids import new_id
 from app.models.user import User
 
 
@@ -9,7 +8,7 @@ class UserRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, user_id: str) -> User | None:
+    async def get_by_id(self, user_id: int) -> User | None:
         return await self._session.get(User, user_id)
 
     async def get_by_email(self, email: str) -> User | None:
@@ -21,7 +20,6 @@ class UserRepository:
         """Добавляет пользователя и выполняет flush; нарушение уникальности e-mail
         поднимается здесь как ``IntegrityError``. Коммит — забота вызывающего."""
         user = User(
-            id=new_id(),
             email=email,
             password_hash=password_hash,
             display_name=display_name,
