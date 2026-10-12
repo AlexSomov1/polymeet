@@ -4,17 +4,43 @@
 в HTTP-ответы ``app.api.errors``.
 """
 
+from http import HTTPStatus
 from typing import Any, ClassVar, Self
 
 ErrorDetails = list[dict[str, Any]]
 
+PROBLEM_JSON = "application/problem+json"
 
-def error_body(code: str, message: str, details: ErrorDetails | None = None) -> dict[str, Any]:
-    """Тело ответа об ошибке в едином формате API."""
-    return {"error": {"code": code, "message": message, "details": details}}
+
+def problem_details(
+    *,
+    status: int,
+    code: str,
+    detail: str,
+    instance: str | None = None,
+    errors: ErrorDetails | None = None,
+) -> dict[str, Any]:
+    """Тело ответа об ошибке по RFC 9457 (бывший RFC 7807) с расширениями ``code`` и ``errors``.
+
+    ``type`` всегда ``about:blank``: машиночитаемый вид ошибки передаёт ``code``.
+    """
+    body: dict[str, Any] = {
+        "type": "about:blank",
+        "title": HTTPStatus(status).phrase,
+        "status": status,
+        "detail": detail,
+        "code": code,
+    }
+    if instance is not None:
+        body["instance"] = instance
+    if errors is not None:
+        body["errors"] = errors
+    return body
 
 
 class AppError(Exception):
+    """Ошибка с кодом API. ``details`` уходит в поле ``errors`` ответа."""
+
     code: ClassVar[str] = "INTERNAL_ERROR"
     http_status: ClassVar[int] = 500
     default_message: ClassVar[str] = "Внутренняя ошибка сервера"
@@ -75,8 +101,8 @@ class EmailTakenError(AppError):
     default_message = "Этот e-mail уже зарегистрирован"
 
 
-class AlreadyRequestedError(AppError):
-    code = "ALREADY_REQUESTED"
+class AlreadyAppliedError(AppError):
+    code = "ALREADY_APPLIED"
     http_status = 409
     default_message = "Заявка на эту встречу уже подана"
 
@@ -93,8 +119,8 @@ class InvalidTransitionError(AppError):
     default_message = "Недопустимый переход статуса"
 
 
-class ThemeNotPublishedError(AppError):
-    code = "THEME_NOT_PUBLISHED"
+class MeetingNotPublishedError(AppError):
+    code = "MEETING_NOT_PUBLISHED"
     http_status = 422
     default_message = "Встреча не опубликована, отменена или уже началась"
 

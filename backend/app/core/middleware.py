@@ -7,7 +7,7 @@ import structlog
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.core.errors import InternalError, error_body
+from app.core.errors import PROBLEM_JSON, InternalError, problem_details
 from app.core.ids import new_id
 from app.core.logging import end_request_context, start_request_context
 
@@ -53,7 +53,7 @@ class RequestContextMiddleware:
             logger.exception("http_error", method=scope["method"], path=_route_path(scope))
             if response_started:
                 raise
-            await _send_internal_error(send_with_request_id)
+            await _send_internal_error(scope, send_with_request_id)
         finally:
             logger.info(
                 "http_request",
@@ -73,10 +73,16 @@ def _route_path(scope: Scope) -> str:
     return template if isinstance(template, str) else str(scope["path"])
 
 
-async def _send_internal_error(send: Send) -> None:
-    body = json.dumps(error_body(InternalError.code, InternalError.default_message)).encode()
+async def _send_internal_error(scope: Scope, send: Send) -> None:
+    problem = problem_details(
+        status=500,
+        code=InternalError.code,
+        detail=InternalError.default_message,
+        instance=str(scope["path"]),
+    )
+    body = json.dumps(problem, ensure_ascii=False).encode()
     headers: list[tuple[bytes, bytes]] = [
-        (b"content-type", b"application/json"),
+        (b"content-type", PROBLEM_JSON.encode()),
         (b"content-length", str(len(body)).encode()),
     ]
     start: dict[str, Any] = {"type": "http.response.start", "status": 500, "headers": headers}

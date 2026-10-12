@@ -1,5 +1,6 @@
 {
   "info": {
+    "description": "API платформы офлайн-встреч студентов PolyMeet.\n\n* Авторизация: заголовок `Authorization: Bearer <access_token>` (токены выдаёт `/auth/login`).\n* Ошибки: RFC 9457, `application/problem+json`; клиент различает их по полю `code`.\n  Ошибки валидации — 400 `VALIDATION_ERROR` с разбором по полям в `errors`.\n* Списки: курсорная пагинация, `{items, next_cursor}`; следующая страница — `?cursor=<next_cursor>`.\n* Время: ISO 8601 со смещением; идентификаторы — целые числа.\n* Целевое время ответа (p95) указано в описании каждой операции.\n",
     "title": "PolyMeet API",
     "version": "0.1.0"
   },
@@ -7,7 +8,7 @@
   "paths": {
     "/health": {
       "get": {
-        "operationId": "health_health_get",
+        "operationId": "health",
         "responses": {
           "200": {
             "content": {
@@ -16,7 +17,7 @@
                   "additionalProperties": {
                     "type": "string"
                   },
-                  "title": "Response Health Health Get",
+                  "title": "Response Health",
                   "type": "object"
                 }
               }
@@ -33,7 +34,7 @@
     "/health/ready": {
       "get": {
         "description": "Проверяет PostgreSQL и Redis. Без PostgreSQL сервис не готов (503); без Redis работает с деградацией (200, `degraded`).",
-        "operationId": "health_ready_health_ready_get",
+        "operationId": "health_ready",
         "responses": {
           "200": {
             "content": {
@@ -50,5 +51,31 @@
         ]
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "description": "Регистрация, вход, обновление и отзыв токенов",
+      "name": "auth"
+    },
+    {
+      "description": "Профили, мои встречи и мои заявки",
+      "name": "users"
+    },
+    {
+      "description": "Справочник категорий встреч",
+      "name": "categories"
+    },
+    {
+      "description": "Лента, карта, создание и правка встреч",
+      "name": "meetings"
+    },
+    {
+      "description": "Заявки на участие и решения организатора",
+      "name": "applications"
+    },
+    {
+      "description": "Проверки живости и готовности",
+      "name": "health"
+    }
+  ]
 }

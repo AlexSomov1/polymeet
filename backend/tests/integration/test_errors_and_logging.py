@@ -25,10 +25,12 @@ async def test_validation_error_is_400_with_field_details(
     response = await client.post("/_probe/echo", params={"limit": 0}, json={"name": "x", "age": -1})
 
     assert response.status_code == 400
-    error = response.json()["error"]
-    assert error["code"] == "VALIDATION_ERROR"
-    assert {detail["field"] for detail in error["details"]} == {"limit", "name", "age"}
-    assert all(detail["message"] for detail in error["details"])
+    assert response.headers["content-type"] == "application/problem+json"
+    problem = response.json()
+    assert (problem["status"], problem["code"]) == (400, "VALIDATION_ERROR")
+    assert problem["instance"] == "/_probe/echo"
+    assert {error["field"] for error in problem["errors"]} == {"limit", "name", "age"}
+    assert all(error["message"] for error in problem["errors"])
 
 
 async def test_unhandled_exception_is_500_without_internals(
@@ -39,12 +41,14 @@ async def test_unhandled_exception_is_500_without_internals(
     response = await client.get("/_probe/boom")
 
     assert response.status_code == 500
+    assert response.headers["content-type"] == "application/problem+json"
     assert response.json() == {
-        "error": {
-            "code": "INTERNAL_ERROR",
-            "message": "Внутренняя ошибка сервера",
-            "details": None,
-        }
+        "type": "about:blank",
+        "title": "Internal Server Error",
+        "status": 500,
+        "detail": "Внутренняя ошибка сервера",
+        "instance": "/_probe/boom",
+        "code": "INTERNAL_ERROR",
     }
     assert "secret internal detail" not in response.text
     assert "Traceback" not in response.text
@@ -70,7 +74,8 @@ async def test_routing_errors_use_unified_format(
     response = await client.request(method, path)
 
     assert response.status_code == status
-    assert response.json()["error"]["code"] == code
+    assert response.headers["content-type"] == "application/problem+json"
+    assert (response.json()["status"], response.json()["code"]) == (status, code)
 
 
 async def test_incoming_request_id_is_returned(client: httpx.AsyncClient) -> None:

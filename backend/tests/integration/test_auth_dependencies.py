@@ -76,7 +76,7 @@ async def test_current_user_rejects_invalid_credentials(
     response = await client.get("/_probe/me", headers=headers)
 
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "UNAUTHORIZED"
+    assert response.json()["code"] == "UNAUTHORIZED"
     assert response.headers["WWW-Authenticate"] == "Bearer"
 
 
