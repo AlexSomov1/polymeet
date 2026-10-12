@@ -1,22 +1,42 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
-  /* Font */
   --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
 
-  /* Your palette */
-  --color-base: #0e0f13; /* page background */
-  --color-raised: #17191f; /* cards */
-  --color-overlay: #1f222b; /* inputs, dropdowns */
-  --color-edge: #2a2e39; /* borders */
-  --color-ink: #f2f1ee; /* primary text */
-  --color-mute: #9aa0ac; /* secondary text */
+  /* your palette */
+  --color-base: #0e0f13;
+  --color-raised: #17191f;
+  --color-overlay: #1f222b;
+  --color-edge: #2a2e39;
+  --color-ink: #f2f1ee;
+  --color-mute: #9aa0ac;
   --color-accent: #ff6a55;
   --color-success: #4ade80;
   --color-warning: #f5b944;
   --color-danger: #f0616d;
+
+  /* shadcn aliases → your tokens */
+  --color-background: var(--color-base);
+  --color-foreground: var(--color-ink);
+  --color-card: var(--color-raised);
+  --color-card-foreground: var(--color-ink);
+  --color-popover: var(--color-overlay);
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-overlay);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-overlay);
+  --color-muted-foreground: var(--color-mute);
+  --color-border: var(--color-edge);
+  --color-input: var(--color-edge);
+  --color-ring: var(--color-accent);
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
 }
 
 body {
-  @apply bg-base text-ink font-sans antialiased;
+  @apply bg-background text-foreground font-sans antialiased;
 }
