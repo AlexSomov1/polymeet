@@ -16,6 +16,7 @@
   --color-success: #4ade80;
   --color-warning: #f5b944;
   --color-danger: #f0616d;
+  --color-button: #2196F3;
 
   /* shadcn aliases → your tokens */
   --color-background: var(--color-base);
