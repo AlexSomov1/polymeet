@@ -1,7 +1,8 @@
 """Все операции контракта /api/v1: доступ и пример корректного запроса.
 
 Таблица должна совпадать с OpenAPI (это проверяет tests/unit/test_openapi_contract.py);
-при добавлении эндпоинта сюда добавляется строка.
+при добавлении эндпоинта сюда добавляется строка. Когда заглушка заменяется реализацией,
+операция помечается ``implemented=True``: проверки 501 из test_api_stubs.py её больше не касаются.
 """
 
 from dataclasses import dataclass, field
@@ -27,6 +28,7 @@ class Operation:
     url: str
     access: Access
     request: dict[str, Any] = field(default_factory=dict)
+    implemented: bool = False
 
 
 OPERATIONS = [
@@ -43,6 +45,7 @@ OPERATIONS = [
                 "display_name": "Аня",
             }
         },
+        implemented=True,
     ),
     Operation(
         "login",
@@ -51,6 +54,7 @@ OPERATIONS = [
         "/api/v1/auth/login",
         "none",
         {"json": {"email": "anya@edu.spbstu.ru", "password": "password-123"}},
+        implemented=True,
     ),
     Operation(
         "refresh",
@@ -59,6 +63,7 @@ OPERATIONS = [
         "/api/v1/auth/refresh",
         "none",
         {"json": {"refresh_token": "token"}},
+        implemented=True,
     ),
     Operation(
         "logout",
@@ -67,8 +72,11 @@ OPERATIONS = [
         "/api/v1/auth/logout",
         "none",
         {"json": {"refresh_token": "token"}},
+        implemented=True,
     ),
-    Operation("get_me", "GET", "/api/v1/users/me", "/api/v1/users/me", "required"),
+    Operation(
+        "get_me", "GET", "/api/v1/users/me", "/api/v1/users/me", "required", implemented=True
+    ),
     Operation(
         "list_my_meetings",
         "GET",
@@ -85,7 +93,14 @@ OPERATIONS = [
         "required",
         {"params": {"status": "waitlist"}},
     ),
-    Operation("get_user", "GET", "/api/v1/users/{user_id}", "/api/v1/users/1", "optional"),
+    Operation(
+        "get_user",
+        "GET",
+        "/api/v1/users/{user_id}",
+        "/api/v1/users/1",
+        "optional",
+        implemented=True,
+    ),
     Operation("list_categories", "GET", "/api/v1/categories", "/api/v1/categories", "none"),
     Operation(
         "list_meetings",
