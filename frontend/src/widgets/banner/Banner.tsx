@@ -14,9 +14,9 @@ export function Banner({ query, onQueryChange }: BannerProps) {
       style={{ backgroundImage: "url(/banner.png)" }}
     >
       {/* Readability overlay — darkens the left where text sits */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent" />
 
-      <div className="relative max-w-[520px] p-6 sm:p-10">
+      <div className="relative max-w-130 p-6 sm:p-10">
         <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
           Открывай возможности.
           <br />
