@@ -1,5 +1,14 @@
 import type { CategoryId } from "./filters/categories";
 
+export interface MyEvent extends Meeting {
+  status: EventStatus;
+  role: UserRole;
+  unreadCount: number;
+  // For the "Маршрут" button — does this event have location routing enabled?
+  hasRoute: boolean;
+}
+
+
 export interface Meeting {
   id: string;
   title: string;
@@ -112,5 +121,79 @@ export const MOCK_MEETINGS: Meeting[] = [
     freeSeats: 45,
     imageUrl: "/concert.jpg",
     isJoined: false,
+  },
+];
+// === My Events extensions ===
+
+export type EventStatus = "approved" | "pending" | "confirmed" | "completed" | "cancelled";
+export type UserRole = "participant" | "organizer";
+
+export interface MyEvent extends Meeting {
+  status: EventStatus;
+  role: UserRole;
+  unreadCount: number;
+  // For the "Маршрут" button — does this event have location routing enabled?
+  hasRoute: boolean;
+}
+
+export const MOCK_MY_EVENTS: MyEvent[] = [
+  {
+    ...MOCK_MEETINGS[2], // "Вечер настольных игр" — m3
+    status: "approved",
+    role: "participant",
+    unreadCount: 2,
+    hasRoute: true,
+  },
+  {
+    ...MOCK_MEETINGS[1], // "Лекция: основы TypeScript" — m2
+    status: "pending",
+    role: "participant",
+    unreadCount: 0,
+    hasRoute: false,
+  },
+  {
+    ...MOCK_MEETINGS[4], // "Утренняя пробежка" — m5
+    status: "approved",
+    role: "participant",
+    unreadCount: 0,
+    hasRoute: false,
+  },
+  {
+    ...MOCK_MEETINGS[3], // "Концерт студенческих групп" — m4
+    status: "approved",
+    role: "participant",
+    unreadCount: 0,
+    hasRoute: false,
+  },
+  // Organizer events
+  {
+    id: "m8",
+    title: "Хакатон по TypeScript",
+    categoryId: "other",
+    address: "IT-парк, этаж 3",
+    distanceKm: 4.2,
+    date: "2026-11-05T10:00:00",
+    freeSeats: 15,
+    imageUrl: "/lecture.jpg", // reuse for now
+    isJoined: true,
+    status: "pending",
+    role: "organizer",
+    unreadCount: 3,
+    hasRoute: true,
+  },
+  {
+    id: "m9",
+    title: "Мастер-класс по глине",
+    categoryId: "other",
+    address: "Главный корп, №2 10",
+    distanceKm: 6.6,
+    date: "2026-10-30T14:00:00",
+    freeSeats: 2,
+    imageUrl: "/others.jpg",
+    isJoined: true,
+    status: "approved",
+    role: "organizer",
+    unreadCount: 0,
+    hasRoute: false,
   },
 ];
