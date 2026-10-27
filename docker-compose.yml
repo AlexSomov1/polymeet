@@ -1,0 +1,126 @@
+# PolyMeet: запуск всей системы — ./run.sh up (или docker compose up --build).
+# Все значения по умолчанию рабочие, .env не обязателен; список переменных — .env.example.
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-dev}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-polymeet}:${POSTGRES_PASSWORD:-polymeet}@db:5432/${POSTGRES_DB:-polymeet}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-in-production}
+  JWT_ACCESS_TTL_MIN: ${JWT_ACCESS_TTL_MIN:-15}
+  JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-30}
+  ARGON2_TIME_COST: ${ARGON2_TIME_COST:-3}
+  ARGON2_MEMORY_COST: ${ARGON2_MEMORY_COST:-65536}
+  ARGON2_PARALLELISM: ${ARGON2_PARALLELISM:-4}
+  AUTH_RATE_LIMIT_ATTEMPTS: ${AUTH_RATE_LIMIT_ATTEMPTS:-5}
+  AUTH_RATE_LIMIT_WINDOW_SEC: ${AUTH_RATE_LIMIT_WINDOW_SEC:-900}
+  ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+  GEOCODER_BASE_URL: ${GEOCODER_BASE_URL:-https://nominatim.openstreetmap.org}
+  GEOCODER_USER_AGENT: ${GEOCODER_USER_AGENT:-PolyMeet/1.0 (course project)}
+  GEOCODER_RPS: ${GEOCODER_RPS:-1}
+  GEOCODER_TIMEOUT_SEC: ${GEOCODER_TIMEOUT_SEC:-1.5}
+  GEOCODER_RETRIES: ${GEOCODER_RETRIES:-2}
+  GEO_CACHE_TTL_DAYS: ${GEO_CACHE_TTL_DAYS:-30}
+  GEO_RETRY_DELAYS_SEC: ${GEO_RETRY_DELAYS_SEC:-300,900,3600}
+  CB_FAIL_MAX: ${CB_FAIL_MAX:-5}
+  CB_OPEN_SECONDS: ${CB_OPEN_SECONDS:-60}
+  CB_WINDOW_SEC: ${CB_WINDOW_SEC:-30}
+  CB_WINDOW_MIN_CALLS: ${CB_WINDOW_MIN_CALLS:-10}
+  CB_WINDOW_FAIL_RATE: ${CB_WINDOW_FAIL_RATE:-0.5}
+  FEED_CACHE_TTL_SEC: ${FEED_CACHE_TTL_SEC:-30}
+
+# Один и тот же образ для migrate, api и worker: слои кэшируются, сборка фактически одна
+x-backend-build: &backend-build
+  context: ./backend
+  target: prod
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-polymeet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-polymeet}
+      POSTGRES_DB: ${POSTGRES_DB:-polymeet}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF: очередь фоновых задач переживает перезапуск Redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: *backend-build
+    command: ["alembic", "upgrade", "head"]
+    environment: *backend-env
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: *backend-build
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    # Наружу порт не публикуется: запросы приходят только через web (nginx)
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  # Строго один экземпляр: лимит Nominatim (1 запрос/с) глобальный,
+  # поэтому масштабировать воркер нельзя (docker compose up --scale worker=N запрещено).
+  worker:
+    build: *backend-build
+    restart: unless-stopped
+    command: ["arq", "app.workers.settings.WorkerSettings"]
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
