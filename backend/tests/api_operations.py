@@ -137,6 +137,7 @@ OPERATIONS = [
         "/api/v1/meetings/map",
         "optional",
         {"params": {"bbox": "30.25,59.90,30.45,60.05", "category": "sport"}},
+        implemented=True,
     ),
     Operation(
         "create_meeting",

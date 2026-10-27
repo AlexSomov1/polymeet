@@ -16,6 +16,7 @@ from tests.integration.helpers import (
 )
 
 FEED = "/api/v1/meetings"
+MAP = "/api/v1/meetings/map"
 MOSCOW = ZoneInfo("Europe/Moscow")
 # Центр поиска — Политех; 1° широты на сфере earthdistance — около 111,32 км
 CENTER = (60.0070, 30.3730)
@@ -159,6 +160,33 @@ async def test_feed_requires_full_point(client: httpx.AsyncClient) -> None:
     assert response.status_code == 400
     assert response.json()["code"] == "VALIDATION_ERROR"
     assert [error["field"] for error in response.json()["errors"]] == ["lon"]
+
+
+async def test_map_returns_points_inside_bbox(
+    client: httpx.AsyncClient, organizer: User, create_meeting: CreateMeeting
+) -> None:
+    soon = datetime.now(UTC) + timedelta(days=1)
+    inside = [
+        await create_meeting(organizer, lat=60.00, lon=30.30, starts_at=soon + timedelta(hours=2)),
+        await create_meeting(organizer, lat=59.95, lon=30.40, starts_at=soon),
+    ]
+    await create_meeting(organizer, lat=59.80, lon=30.30)  # южнее области
+    await create_meeting(organizer, lat=60.00, lon=30.60)  # восточнее области
+    await create_meeting(organizer)  # без координат
+    bbox = "30.25,59.90,30.45,60.05"
+
+    response = await client.get(MAP, params={"bbox": bbox})
+    assert response.status_code == 200, response.text
+    items = response.json()
+    assert [item["id"] for item in items] == [inside[1].id, inside[0].id]
+    assert all(item["distance_km"] is None for item in items)
+
+    limited = await client.get(MAP, params={"bbox": bbox, "limit": 1})
+    assert [item["id"] for item in limited.json()] == [inside[1].id]
+
+    inverted = await client.get(MAP, params={"bbox": "30.45,59.90,30.25,60.05"})
+    assert inverted.status_code == 400
+    assert inverted.json()["errors"][0]["field"] == "bbox"
 
 
 async def _explain(engine: AsyncEngine, filters: FeedFilters) -> str:

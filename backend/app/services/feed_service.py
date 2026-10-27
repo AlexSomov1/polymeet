@@ -1,4 +1,4 @@
-"""Лента встреч: проверка параметров, курсор, поиск по радиусу."""
+"""Лента встреч и встречи на карте: проверка параметров, курсор."""
 
 from collections.abc import Callable
 from dataclasses import replace
@@ -11,7 +11,7 @@ from app.core.errors import ValidationAppError
 from app.core.pagination import decode_cursor, encode_cursor
 from app.models.meeting import Meeting
 from app.repositories.category_repository import CategoryRepository
-from app.repositories.meeting_repository import FeedFilters, GeoCircle, MeetingRepository
+from app.repositories.meeting_repository import BBox, FeedFilters, GeoCircle, MeetingRepository
 from app.schemas.meetings import MeetingListItem, MeetingPage
 
 ItemBuilder = Callable[[Meeting, float | None], MeetingListItem]
@@ -34,6 +34,25 @@ def geo_circle(lat: float | None, lon: float | None, radius_km: float | None) ->
         )
     assert lat is not None and lon is not None and radius_km is not None
     return GeoCircle(lat=lat, lon=lon, radius_m=radius_km * 1000)
+
+
+def parse_bbox(value: str) -> BBox:
+    """Видимая область ``min_lon,min_lat,max_lon,max_lat``; формат уже проверен схемой."""
+    try:
+        min_lon, min_lat, max_lon, max_lat = (float(part) for part in value.split(","))
+    except ValueError as exc:
+        raise ValidationAppError.for_field(
+            "bbox", "Ожидается min_lon,min_lat,max_lon,max_lat"
+        ) from exc
+    if not all(-180 <= lon <= 180 for lon in (min_lon, max_lon)):
+        raise ValidationAppError.for_field("bbox", "Долгота должна быть от -180 до 180")
+    if not all(-90 <= lat <= 90 for lat in (min_lat, max_lat)):
+        raise ValidationAppError.for_field("bbox", "Широта должна быть от -90 до 90")
+    if min_lon >= max_lon or min_lat >= max_lat:
+        raise ValidationAppError.for_field(
+            "bbox", "Минимальные границы должны быть меньше максимальных"
+        )
+    return BBox(min_lon=min_lon, min_lat=min_lat, max_lon=max_lon, max_lat=max_lat)
 
 
 def day_bounds(day: date, timezone: str) -> tuple[datetime, datetime]:
@@ -64,7 +83,7 @@ class FeedService:
     async def _filters(
         self, category: str | None, day: date | None, has_free_places: bool
     ) -> FeedFilters | None:
-        """Общие условия ленты; ``None`` — неизвестная категория, выдача пуста."""
+        """Общие условия ленты и карты; ``None`` — неизвестная категория, выдача пуста."""
         category_id = None
         if category is not None:
             found = await self._categories.get_by_slug(category)
@@ -132,3 +151,20 @@ class FeedService:
             limit=limit,
             build_item=build_item,
         )
+
+    async def list_on_map(
+        self,
+        *,
+        bbox: str,
+        category: str | None,
+        day: date | None,
+        has_free_places: bool,
+        limit: int,
+        build_item: ItemBuilder,
+    ) -> list[MeetingListItem]:
+        area = parse_bbox(bbox)
+        filters = await self._filters(category, day, has_free_places)
+        if filters is None:
+            return []
+        meetings = await self._meetings.list_in_bbox(filters, area, limit)
+        return [build_item(meeting, None) for meeting in meetings]

@@ -110,10 +110,11 @@ async def list_meetings(
         "по времени начала, без пагинации.",
     ),
     openapi_extra=OPTIONAL_AUTH,
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
 async def list_meetings_on_map(
     viewer: OptionalUser,
+    service: FeedServiceDep,
     bbox: Annotated[
         str,
         Query(
@@ -127,7 +128,14 @@ async def list_meetings_on_map(
     has_free_places: FreePlacesFilter = False,
     limit: Annotated[int, Query(ge=1, le=200, description="Максимум точек")] = 200,
 ) -> list[MeetingListItem]:
-    raise NotImplementedAppError()
+    return await service.list_on_map(
+        bbox=bbox,
+        category=category,
+        day=day,
+        has_free_places=has_free_places,
+        limit=limit,
+        build_item=to_meeting_list_item,
+    )
 
 
 @router.post(

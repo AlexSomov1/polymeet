@@ -18,6 +18,14 @@ class GeoCircle:
 
 
 @dataclass(frozen=True, slots=True)
+class BBox:
+    min_lon: float
+    min_lat: float
+    max_lon: float
+    max_lat: float
+
+
+@dataclass(frozen=True, slots=True)
 class FeedFilters:
     """Условия ленты и карты. ``starts_after`` — обычно текущее время."""
 
@@ -121,3 +129,14 @@ class MeetingRepository:
         if circle is None:
             return [(meeting, None) for meeting in rows.scalars()]
         return [(meeting, distance_m) for meeting, distance_m in rows]
+
+    async def list_in_bbox(self, filters: FeedFilters, bbox: BBox, limit: int) -> list[Meeting]:
+        query = (
+            _feed_select(filters)
+            .where(
+                Meeting.lat.between(bbox.min_lat, bbox.max_lat),
+                Meeting.lon.between(bbox.min_lon, bbox.max_lon),
+            )
+            .limit(limit)
+        )
+        return list(await self._session.scalars(query))
