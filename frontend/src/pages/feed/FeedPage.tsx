@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Banner } from "@/widgets/banner/Banner";
-import { MeetingCard } from "@/widgets/meeting-card/MeetingCard";
 import { MOCK_MEETINGS } from "@/features/meetings/mock";
+import { MeetingCard } from "@/widgets/meeting-card/MeetingCard";
 import { filterMeetings } from "@/lib/filterMeetings";
 import { FilterSidebar } from "@/widgets/filters/FilterSidebar";
 import type { FiltersState } from "@/features/meetings/filters/categories";
@@ -44,18 +44,19 @@ export function FeedPage() {
             <p className="rounded-xl border border-dashed border-white/15 p-10 text-center text-sm text-slate-500">
               Ничего не найдено. Попробуйте ослабить фильтры.
             </p>
-          ) :view === "list" ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleMeetings.map((meeting) => (
-                  <MeetingCard key={meeting.id} meeting={meeting} />
-                ))}
-              </div>
-            ) : (
-              <MapView
-                meetings={visibleMeetings}
-                onMeetingClick={(id) => console.log("clicked meeting", id)}
-              />
-            )}
+          ) : view === "list" ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleMeetings.map((meeting) => (
+                <MeetingCard key={meeting.id} meeting={meeting} />
+              ))}
+            </div>
+          ) : (
+            <MapView
+              meetings={visibleMeetings}
+              apiKey={import.meta.env.VITE_YMAPS_API_KEY || "YOUR_KEY_HERE"}
+              onMeetingClick={(id) => console.log("clicked", id)}
+            />
+          )}
         </section>
       </div>
     </div>

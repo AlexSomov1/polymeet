@@ -37,7 +37,21 @@
   --radius-lg: 0.75rem;
   --radius-md: 0.5rem;
 }
+/* Dark mode for Yandex Maps */
+.ymaps-2-1-79-map {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1);
+}
 
+/* Re-invert placemark icons so they look normal */
+.ymaps-2-1-79-placemark-overlay {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Re-invert clusterer icons */
+.ymaps-2-1-79-cluster-carousel__content,
+.ymaps-2-1-79-cluster-content {
+  filter: invert(1) hue-rotate(180deg);
+}
 body {
   @apply bg-background text-foreground font-sans antialiased;
 }
