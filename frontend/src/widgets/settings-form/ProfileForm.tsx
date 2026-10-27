@@ -65,7 +65,7 @@ export function ProfileForm({ user, onChange }: ProfileFormProps) {
         </div>
 
         <div className="space-y-1 pt-2">
-          <p className="text-base font-medium">
+          <p className="text-white font-medium">
             {draft.firstName} {draft.lastName}
           </p>
           <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
@@ -87,7 +87,6 @@ export function ProfileForm({ user, onChange }: ProfileFormProps) {
         <Field
           label="Университет / Факультет"
           value={`${draft.university} · ${draft.faculty}`}
-          readOnly
         />
         <Field
           label="Telegram username"

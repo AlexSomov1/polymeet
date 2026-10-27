@@ -80,7 +80,7 @@ export function MyEventCard({
         className="relative h-36 bg-cover bg-center"
         style={{ backgroundImage: `url(${event.imageUrl})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent" />
 
         {/* Top-left: category + status */}
         <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
