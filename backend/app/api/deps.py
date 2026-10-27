@@ -14,6 +14,7 @@ from app.core.redis import get_redis
 from app.core.security import INVALID_TOKEN_MESSAGE, decode_token, user_id_from_subject
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.services.geocoding_port import GeocodingPort, NullGeocoding
 
 _bearer = HTTPBearer(auto_error=False, description="Access-токен, выданный /auth/login")
 
@@ -77,3 +78,7 @@ async def get_current_user(
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[User | None, Depends(get_current_user_optional)]
+
+
+def get_geocoding() -> GeocodingPort:
+    return NullGeocoding()

@@ -10,6 +10,8 @@ from app.api.errors import (
     ValidationAppError,
     error_responses,
 )
+from app.api.v1.mappers import to_meeting_list_item
+from app.api.v1.meetings import MeetingServiceDep
 from app.api.v1.params import Cursor, PageLimit, UserId, p95
 from app.schemas.applications import MyApplicationPage
 from app.schemas.enums import ApplicationStatus
@@ -43,12 +45,15 @@ async def get_me(user: CurrentUser) -> UserOut:
     "/me/meetings",
     summary="Мои встречи",
     description=p95(200, "Встречи, где я организатор, во всех статусах; новые сначала."),
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
 async def list_my_meetings(
-    user: CurrentUser, cursor: Cursor = None, limit: PageLimit = 20
+    user: CurrentUser, service: MeetingServiceDep, cursor: Cursor = None, limit: PageLimit = 20
 ) -> MeetingPage:
-    raise NotImplementedAppError()
+    meetings, next_cursor = await service.list_mine(user, cursor, limit)
+    return MeetingPage(
+        items=[to_meeting_list_item(meeting) for meeting in meetings], next_cursor=next_cursor
+    )
 
 
 @router.get(

@@ -54,7 +54,7 @@ async def test_stub_with_token_reaches_handler(
     [
         ("/api/v1/meetings/map?bbox=30.25,59.90,30.45,60.05", 501),
         ("/api/v1/users/me", 200),
-        ("/api/v1/users/me/meetings", 501),
+        ("/api/v1/users/me/meetings", 200),
     ],
 )
 async def test_static_paths_are_not_captured_by_id_routes(
