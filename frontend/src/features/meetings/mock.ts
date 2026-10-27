@@ -45,8 +45,10 @@ export const MOCK_MEETINGS: Meeting[] = [
     imageUrl: "/lecture.jpg",
     isJoined: false,
   },
+  
+
   {
-    id: "m3",
+    id: "m4",
     title: "Вечер настольных игр",
     categoryId: "games",
     address: "Кафе «Кубик», Ленина 5",
@@ -54,17 +56,6 @@ export const MOCK_MEETINGS: Meeting[] = [
     date: "2026-10-28T19:00:00",
     freeSeats: 0,
     imageUrl: "/gaming.jpg",
-    isJoined: false,
-  },
-  {
-    id: "m4",
-    title: "Концерт студенческих групп",
-    categoryId: "concert",
-    address: "Актовый зал",
-    distanceKm: 0.1,
-    date: "2026-10-31T20:00:00",
-    freeSeats: 45,
-    imageUrl: "/concert.jpg",
     isJoined: false,
   },
   {
@@ -100,28 +91,7 @@ export const MOCK_MEETINGS: Meeting[] = [
     imageUrl: "/others.jpg",
     isJoined: false,
   },
- {
-    id: "m2",
-    title: "Лекция: основы TypeScript",
-    categoryId: "lecture",
-    address: "Главный корпус, ауд. 305",
-    distanceKm: 0.4,
-    date: "2026-10-25T17:00:00",
-    freeSeats: 12,
-    imageUrl: "/lecture.jpg",
-    isJoined: false,
-  },
-    {
-    id: "m4",
-    title: "Концерт студенческих групп",
-    categoryId: "concert",
-    address: "Актовый зал",
-    distanceKm: 0.1,
-    date: "2026-10-31T20:00:00",
-    freeSeats: 45,
-    imageUrl: "/concert.jpg",
-    isJoined: false,
-  },
+
 ];
 // === My Events extensions ===
 
@@ -197,3 +167,23 @@ export const MOCK_MY_EVENTS: MyEvent[] = [
     hasRoute: false,
   },
 ];
+export interface ChatMessage {
+  id: string;
+  meetingId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  sentAt: string;
+}
+
+export const MOCK_MESSAGES: Record<string, ChatMessage[]> = {
+  "m3": [
+    { id: "msg1", meetingId: "m3", authorId: "u2", authorName: "Анна", text: "Привет! Какой стол забронируем?", sentAt: "2026-10-27T14:00:00" },
+    { id: "msg2", meetingId: "m3", authorId: "me", authorName: "GR", text: "У окна, если свободен", sentAt: "2026-10-27T14:05:00" },
+  ],
+  "m8": [
+    { id: "msg3", meetingId: "m8", authorId: "u5", authorName: "Дима", text: "Когда регистрация?", sentAt: "2026-10-25T09:00:00" },
+    { id: "msg4", meetingId: "m8", authorId: "u6", authorName: "Маша", text: "С 9:30", sentAt: "2026-10-25T09:15:00" },
+    { id: "msg5", meetingId: "m8", authorId: "u7", authorName: "Коля", text: "Буду чуть позже", sentAt: "2026-10-25T09:20:00" },
+  ],
+};
