@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy app/services app/core
+      - run: mypy app
+
+  test-backend:
+    needs: lint-backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: polymeet
+          POSTGRES_PASSWORD: polymeet
+          POSTGRES_DB: polymeet_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U polymeet -d polymeet_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      # С этими переменными тесты берут готовые сервисы, testcontainers не нужны
+      TEST_DATABASE_URL: postgresql+asyncpg://polymeet:polymeet@localhost:5432/polymeet_test
+      TEST_REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: >-
+          pytest tests/unit tests/integration
+          --cov=app --cov-report=xml --cov-report=term-missing
+          --junitxml=reports/junit.xml --cov-fail-under=60
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-reports
+          path: |
+            backend/reports/
+            backend/coverage.xml
+          if-no-files-found: ignore
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test --if-present
+      - run: npm run build
+
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Образ backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          target: prod
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+      - name: Образ frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  compose-smoke:
+    needs: build-images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Запуск всей системы
+        run: docker compose up --build -d --wait
+      - name: Готовность и запрос через nginx
+        run: |
+          curl -fsS http://localhost/health/ready
+          curl -fsS http://localhost/api/v1/categories
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/metrics)" = "404"
+      - name: Логи при ошибке
+        if: failure()
+        run: docker compose logs
+      - name: Остановка
+        if: always()
+        run: docker compose down -v
