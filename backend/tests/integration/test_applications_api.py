@@ -43,6 +43,10 @@ def applications_url(meeting: Meeting) -> str:
     return f"/api/v1/meetings/{meeting.id}/applications"
 
 
+def decision_url(application_id: int) -> str:
+    return f"/api/v1/applications/{application_id}/decision"
+
+
 class Api:
     """Короткие вызовы API заявок от имени пользователя."""
 
@@ -64,6 +68,13 @@ class Api:
     async def withdraw(self, user: User, meeting: Meeting) -> httpx.Response:
         return await self.client.delete(
             f"{applications_url(meeting)}/me", headers=self.auth_headers(user)
+        )
+
+    async def decide(self, user: User, application_id: int, decision: str) -> httpx.Response:
+        return await self.client.post(
+            decision_url(application_id),
+            json={"decision": decision},
+            headers=self.auth_headers(user),
         )
 
 
@@ -130,6 +141,25 @@ async def test_full_meeting_puts_new_applications_on_waitlist(
     await assert_invariant(engine, meeting.id)
 
 
+async def test_organizer_cannot_accept_over_capacity(
+    api: Api,
+    engine: AsyncEngine,
+    organizer: User,
+    create_user: CreateUser,
+    create_meeting: CreateMeeting,
+) -> None:
+    meeting = await create_meeting(organizer, capacity=2)
+    first, second, third = [await api.applied(await create_user(), meeting) for _ in range(3)]
+    for application in (first, second):
+        accepted = await api.decide(organizer, application["id"], "accepted")
+        assert (accepted.status_code, accepted.json()["status"]) == (200, "accepted")
+
+    response = await api.decide(organizer, third["id"], "accepted")
+
+    assert (response.status_code, response.json()["code"]) == (409, "CAPACITY_REACHED")
+    await assert_invariant(engine, meeting.id)
+
+
 async def test_withdrawing_accepted_promotes_earliest_waitlisted(
     api: Api,
     engine: AsyncEngine,
@@ -150,6 +180,30 @@ async def test_withdrawing_accepted_promotes_earliest_waitlisted(
         other.id: "accepted",
         early.id: "accepted",
         late.id: "waitlist",
+    }
+    await assert_invariant(engine, meeting.id)
+
+
+async def test_rejecting_accepted_promotes_next_waitlisted(
+    api: Api,
+    engine: AsyncEngine,
+    organizer: User,
+    create_user: CreateUser,
+    create_meeting: CreateMeeting,
+) -> None:
+    meeting = await create_meeting(organizer, capacity=2, auto_accept=True)
+    accepted, other, waiting = [await create_user() for _ in range(3)]
+    application = await api.applied(accepted, meeting)
+    await api.applied(other, meeting)
+    await api.applied(waiting, meeting)
+
+    response = await api.decide(organizer, application["id"], "rejected")
+
+    assert (response.status_code, response.json()["status"]) == (200, "rejected")
+    assert await statuses_by_user(engine, meeting) == {
+        accepted.id: "rejected",
+        other.id: "accepted",
+        waiting.id: "accepted",
     }
     await assert_invariant(engine, meeting.id)
 
@@ -220,6 +274,113 @@ async def test_withdraw_without_application_is_not_found(
     assert (missing.status_code, missing.json()["code"]) == (404, "NOT_FOUND")
 
 
+async def test_decision_rules(
+    api: Api,
+    engine: AsyncEngine,
+    organizer: User,
+    create_user: CreateUser,
+    create_meeting: CreateMeeting,
+) -> None:
+    meeting = await create_meeting(organizer)
+    applicant, stranger = await create_user(), await create_user()
+    application = await api.applied(applicant, meeting)
+
+    for actor in (applicant, stranger):
+        response = await api.decide(actor, application["id"], "accepted")
+        assert (response.status_code, response.json()["code"]) == (403, "FORBIDDEN")
+    missing = await api.decide(organizer, 999999, "accepted")
+    assert missing.status_code == 404
+
+    cancelled = await api.client.patch(
+        f"/api/v1/meetings/{meeting.id}",
+        json={"status": "cancelled"},
+        headers=api.auth_headers(organizer),
+    )
+    assert cancelled.status_code == 200
+    response = await api.decide(organizer, application["id"], "accepted")
+    assert (response.status_code, response.json()["code"]) == (409, "INVALID_TRANSITION")
+    await assert_invariant(engine, meeting.id)
+
+
+async def test_organizer_queue(
+    api: Api,
+    organizer: User,
+    create_user: CreateUser,
+    create_meeting: CreateMeeting,
+) -> None:
+    meeting = await create_meeting(organizer, capacity=2, auto_accept=True)
+    users = [await create_user() for _ in range(5)]
+    ids = [(await api.applied(user, meeting))["id"] for user in users]
+
+    foreign = await api.client.get(applications_url(meeting), headers=api.auth_headers(users[0]))
+    assert (foreign.status_code, foreign.json()["code"]) == (403, "FORBIDDEN")
+
+    seen: list[int] = []
+    cursor = None
+    while True:
+        params: dict[str, Any] = {"limit": 2}
+        if cursor is not None:
+            params["cursor"] = cursor
+        response = await api.client.get(
+            applications_url(meeting), params=params, headers=api.auth_headers(organizer)
+        )
+        assert response.status_code == 200, response.text
+        seen += [item["id"] for item in response.json()["items"]]
+        cursor = response.json()["next_cursor"]
+        if cursor is None:
+            break
+    assert seen == ids
+
+    waitlist = await api.client.get(
+        applications_url(meeting),
+        params={"status": "waitlist"},
+        headers=api.auth_headers(organizer),
+    )
+    assert [item["id"] for item in waitlist.json()["items"]] == ids[2:]
+
+    broken = await api.client.get(
+        applications_url(meeting), params={"cursor": "broken"}, headers=api.auth_headers(organizer)
+    )
+    assert (broken.status_code, broken.json()["errors"][0]["field"]) == (400, "cursor")
+
+
+async def test_my_applications(
+    api: Api,
+    organizer: User,
+    create_user: CreateUser,
+    create_meeting: CreateMeeting,
+) -> None:
+    user = await create_user()
+    first = await create_meeting(organizer, title="Шахматы", capacity=2, auto_accept=True)
+    second = await create_meeting(organizer, title="Бег")
+    accepted = await api.applied(user, first)
+    pending = await api.applied(user, second)
+
+    response = await api.client.get("/api/v1/users/me/applications", headers=api.auth_headers(user))
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["id"] for item in items] == [pending["id"], accepted["id"]]
+    assert items[1]["meeting"] == {
+        "id": first.id,
+        "title": "Шахматы",
+        "starts_at": items[1]["meeting"]["starts_at"],
+        "status": "published",
+        "accepted_count": 1,
+        "capacity": 2,
+    }
+
+    only_accepted = await api.client.get(
+        "/api/v1/users/me/applications",
+        params={"status": "accepted"},
+        headers=api.auth_headers(user),
+    )
+    assert [item["id"] for item in only_accepted.json()["items"]] == [accepted["id"]]
+    others = await api.client.get(
+        "/api/v1/users/me/applications", headers=api.auth_headers(organizer)
+    )
+    assert others.json() == {"items": [], "next_cursor": None}
+
+
 async def test_my_application_in_meeting_card(
     api: Api, organizer: User, create_user: CreateUser, create_meeting: CreateMeeting
 ) -> None:
@@ -264,4 +425,23 @@ async def test_capacity_increase_promotes_exactly_new_places(
     assert response.json()["accepted_count"] == 4
     statuses = await statuses_by_user(engine, meeting)
     assert [statuses[user.id] for user in users] == ["accepted"] * 4 + ["waitlist"] * 2
+    await assert_invariant(engine, meeting.id)
+
+
+async def test_rejected_applicant_can_neither_reapply_nor_withdraw(
+    api: Api,
+    engine: AsyncEngine,
+    organizer: User,
+    create_user: CreateUser,
+    create_meeting: CreateMeeting,
+) -> None:
+    meeting = await create_meeting(organizer)
+    user = await create_user()
+    application = await api.applied(user, meeting)
+    assert (await api.decide(organizer, application["id"], "rejected")).status_code == 200
+
+    reapplied = await api.apply(user, meeting)
+    assert (reapplied.status_code, reapplied.json()["code"]) == (409, "ALREADY_APPLIED")
+    withdrawn = await api.withdraw(user, meeting)
+    assert (withdrawn.status_code, withdrawn.json()["code"]) == (409, "INVALID_TRANSITION")
     await assert_invariant(engine, meeting.id)

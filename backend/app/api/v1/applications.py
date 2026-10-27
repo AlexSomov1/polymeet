@@ -10,7 +10,6 @@ from app.api.errors import (
     InvalidTransitionError,
     MeetingNotPublishedError,
     NotFoundError,
-    NotImplementedAppError,
     UnauthorizedError,
     ValidationAppError,
     error_responses,
@@ -73,18 +72,23 @@ async def apply_to_meeting(
     "/meetings/{meeting_id}/applications",
     summary="Заявки на мою встречу",
     description=p95(200, "Только организатор. Очередь в порядке подачи."),
-    responses=error_responses(
-        ValidationAppError, UnauthorizedError, ForbiddenError, NotFoundError, NotImplementedAppError
-    ),
+    responses=error_responses(ValidationAppError, UnauthorizedError, ForbiddenError, NotFoundError),
 )
 async def list_meeting_applications(
     meeting_id: MeetingId,
     user: CurrentUser,
+    service: ApplicationServiceDep,
     status: Annotated[ApplicationStatus | None, Query(description="Фильтр по статусу")] = None,
     cursor: Cursor = None,
     limit: PageLimit = 20,
 ) -> ApplicationPage:
-    raise NotImplementedAppError()
+    applications, next_cursor = await service.list_for_organizer(
+        user, meeting_id, to_model_status(status), cursor, limit
+    )
+    return ApplicationPage(
+        items=[to_application_out(application) for application in applications],
+        next_cursor=next_cursor,
+    )
 
 
 @router.delete(
@@ -123,10 +127,13 @@ async def withdraw_my_application(
         NotFoundError,
         CapacityReachedError,
         InvalidTransitionError,
-        NotImplementedAppError,
     ),
 )
 async def decide_application(
-    application_id: ApplicationId, payload: DecisionIn, user: CurrentUser
+    application_id: ApplicationId,
+    payload: DecisionIn,
+    user: CurrentUser,
+    service: ApplicationServiceDep,
 ) -> ApplicationOut:
-    raise NotImplementedAppError()
+    decision = model_enums.ApplicationStatus[payload.decision.upper()]
+    return to_application_out(await service.decide(user, application_id, decision))

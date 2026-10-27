@@ -3,6 +3,8 @@ from app.models.meeting import Meeting
 from app.schemas.applications import (
     ApplicantOut,
     ApplicationOut,
+    MeetingBrief,
+    MyApplicationItem,
 )
 from app.schemas.enums import ApplicationStatus, GeoStatus, MeetingStatus
 from app.schemas.meetings import (
@@ -82,5 +84,24 @@ def to_application_out(application: Application) -> ApplicationOut:
             display_name=application.user.display_name,
             attendance_rate=application.user.attendance_rate,
             attended_count=application.user.attended_count,
+        ),
+    )
+
+
+def to_my_application_item(application: Application) -> MyApplicationItem:
+    meeting = application.meeting
+    return MyApplicationItem(
+        id=application.id,
+        status=ApplicationStatus[application.status.name],
+        message=application.message,
+        created_at=application.created_at,
+        decided_at=application.decided_at,
+        meeting=MeetingBrief(
+            id=meeting.id,
+            title=meeting.title,
+            starts_at=meeting.starts_at,
+            status=MeetingStatus[meeting.status.name],
+            accepted_count=meeting.accepted_count,
+            capacity=meeting.capacity,
         ),
     )

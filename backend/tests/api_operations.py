@@ -93,6 +93,7 @@ OPERATIONS = [
         "/api/v1/users/me/applications",
         "required",
         {"params": {"status": "waitlist"}},
+        implemented=True,
     ),
     Operation(
         "get_user",
@@ -188,6 +189,7 @@ OPERATIONS = [
         "/api/v1/meetings/1/applications",
         "required",
         {"params": {"status": "pending"}},
+        implemented=True,
     ),
     Operation(
         "withdraw_my_application",
@@ -204,5 +206,6 @@ OPERATIONS = [
         "/api/v1/applications/1/decision",
         "required",
         {"json": {"decision": "accepted"}},
+        implemented=True,
     ),
 ]
