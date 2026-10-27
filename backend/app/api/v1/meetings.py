@@ -1,9 +1,9 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import OPTIONAL_AUTH, CurrentUser, OptionalUser
+from app.api.deps import OPTIONAL_AUTH, CurrentUser, OptionalUser, SessionDep, get_geocoding
 from app.api.errors import (
     ForbiddenError,
     InvalidTransitionError,
@@ -13,6 +13,7 @@ from app.api.errors import (
     ValidationAppError,
     error_responses,
 )
+from app.api.v1.mappers import to_meeting_out
 from app.api.v1.params import Cursor, MeetingId, p95
 from app.schemas.meetings import (
     CategorySlug,
@@ -23,8 +24,19 @@ from app.schemas.meetings import (
     MeetingPage,
     MeetingUpdate,
 )
+from app.services.geocoding_port import GeocodingPort
+from app.services.meeting_service import MeetingService
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
+
+
+def get_meeting_service(
+    session: SessionDep, geocoding: Annotated[GeocodingPort, Depends(get_geocoding)]
+) -> MeetingService:
+    return MeetingService(session, geocoding)
+
+
+MeetingServiceDep = Annotated[MeetingService, Depends(get_meeting_service)]
 
 BBOX_PATTERN = r"^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$"
 
@@ -100,10 +112,12 @@ async def list_meetings_on_map(
         "Встреча создаётся черновиком. Адрес геокодируется в фоне: "
         "пока координат нет, `geo_status` равен `pending`.",
     ),
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
-async def create_meeting(payload: MeetingCreate, user: CurrentUser) -> MeetingOut:
-    raise NotImplementedAppError()
+async def create_meeting(
+    payload: MeetingCreate, user: CurrentUser, service: MeetingServiceDep
+) -> MeetingOut:
+    return to_meeting_out(await service.create(user, payload))
 
 
 @router.get(
@@ -111,12 +125,12 @@ async def create_meeting(payload: MeetingCreate, user: CurrentUser) -> MeetingOu
     summary="Карточка встречи",
     description=p95(150, "Черновик виден только организатору; для остальных — 404."),
     openapi_extra=OPTIONAL_AUTH,
-    responses=error_responses(
-        ValidationAppError, UnauthorizedError, NotFoundError, NotImplementedAppError
-    ),
+    responses=error_responses(ValidationAppError, UnauthorizedError, NotFoundError),
 )
-async def get_meeting(meeting_id: MeetingId, viewer: OptionalUser) -> MeetingOut:
-    raise NotImplementedAppError()
+async def get_meeting(
+    meeting_id: MeetingId, viewer: OptionalUser, service: MeetingServiceDep
+) -> MeetingOut:
+    return to_meeting_out(await service.get(meeting_id, viewer))
 
 
 @router.patch(
@@ -133,13 +147,14 @@ async def get_meeting(meeting_id: MeetingId, viewer: OptionalUser) -> MeetingOut
         ForbiddenError,
         NotFoundError,
         InvalidTransitionError,
-        NotImplementedAppError,
     ),
 )
 async def update_meeting(
-    meeting_id: MeetingId, payload: MeetingUpdate, user: CurrentUser
+    meeting_id: MeetingId, payload: MeetingUpdate, user: CurrentUser, service: MeetingServiceDep
 ) -> MeetingOut:
-    raise NotImplementedAppError()
+    return to_meeting_out(
+        await service.update(meeting_id, user, payload.model_dump(exclude_unset=True))
+    )
 
 
 @router.put(

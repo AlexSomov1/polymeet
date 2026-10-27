@@ -50,7 +50,7 @@ async def test_migrations_upgrade_downgrade_upgrade_on_empty_database(
 
     await asyncio.to_thread(command.upgrade, config, "head")
     assert await _schema_state(empty_database.database_url) == (
-        {"alembic_version", "users"},
+        {"alembic_version", "users", "categories", "meetings", "geocode_cache"},
         EXTENSIONS,
     )
 
@@ -62,7 +62,7 @@ async def test_migrations_upgrade_downgrade_upgrade_on_empty_database(
 
     await asyncio.to_thread(command.upgrade, config, "head")
     assert await _schema_state(empty_database.database_url) == (
-        {"alembic_version", "users"},
+        {"alembic_version", "users", "categories", "meetings", "geocode_cache"},
         EXTENSIONS,
     )
 

@@ -84,6 +84,7 @@ OPERATIONS = [
         "/api/v1/users/me/meetings",
         "required",
         {"params": {"limit": 10}},
+        implemented=True,
     ),
     Operation(
         "list_my_applications",
@@ -101,7 +102,14 @@ OPERATIONS = [
         "optional",
         implemented=True,
     ),
-    Operation("list_categories", "GET", "/api/v1/categories", "/api/v1/categories", "none"),
+    Operation(
+        "list_categories",
+        "GET",
+        "/api/v1/categories",
+        "/api/v1/categories",
+        "none",
+        implemented=True,
+    ),
     Operation(
         "list_meetings",
         "GET",
@@ -136,9 +144,15 @@ OPERATIONS = [
         "/api/v1/meetings",
         "required",
         {"json": MEETING_IN},
+        implemented=True,
     ),
     Operation(
-        "get_meeting", "GET", "/api/v1/meetings/{meeting_id}", "/api/v1/meetings/1", "optional"
+        "get_meeting",
+        "GET",
+        "/api/v1/meetings/{meeting_id}",
+        "/api/v1/meetings/1",
+        "optional",
+        implemented=True,
     ),
     Operation(
         "update_meeting",
@@ -147,6 +161,7 @@ OPERATIONS = [
         "/api/v1/meetings/1",
         "required",
         {"json": {"status": "published", "address_hint": None}},
+        implemented=True,
     ),
     Operation(
         "set_meeting_location",
