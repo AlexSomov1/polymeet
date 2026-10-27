@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, SessionDep
 from app.api.errors import (
     AlreadyAppliedError,
     CapacityReachedError,
@@ -15,7 +15,9 @@ from app.api.errors import (
     ValidationAppError,
     error_responses,
 )
+from app.api.v1.mappers import to_application_out
 from app.api.v1.params import ApplicationId, Cursor, MeetingId, PageLimit, p95
+from app.models import enums as model_enums
 from app.schemas.applications import (
     ApplicationCreate,
     ApplicationOut,
@@ -23,8 +25,20 @@ from app.schemas.applications import (
     DecisionIn,
 )
 from app.schemas.enums import ApplicationStatus
+from app.services.application_service import ApplicationService
 
 router = APIRouter(tags=["applications"])
+
+
+def get_application_service(session: SessionDep) -> ApplicationService:
+    return ApplicationService(session)
+
+
+ApplicationServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
+
+
+def to_model_status(status: ApplicationStatus | None) -> model_enums.ApplicationStatus | None:
+    return model_enums.ApplicationStatus[status.name] if status is not None else None
 
 
 @router.post(
@@ -43,13 +57,16 @@ router = APIRouter(tags=["applications"])
         NotFoundError,
         AlreadyAppliedError,
         MeetingNotPublishedError,
-        NotImplementedAppError,
     ),
 )
 async def apply_to_meeting(
-    meeting_id: MeetingId, user: CurrentUser, payload: ApplicationCreate | None = None
+    meeting_id: MeetingId,
+    user: CurrentUser,
+    service: ApplicationServiceDep,
+    payload: ApplicationCreate | None = None,
 ) -> ApplicationOut:
-    raise NotImplementedAppError()
+    message = payload.message if payload is not None else None
+    return to_application_out(await service.apply(user, meeting_id, message))
 
 
 @router.get(
@@ -84,11 +101,12 @@ async def list_meeting_applications(
         UnauthorizedError,
         NotFoundError,
         InvalidTransitionError,
-        NotImplementedAppError,
     ),
 )
-async def withdraw_my_application(meeting_id: MeetingId, user: CurrentUser) -> None:
-    raise NotImplementedAppError()
+async def withdraw_my_application(
+    meeting_id: MeetingId, user: CurrentUser, service: ApplicationServiceDep
+) -> None:
+    await service.withdraw(user, meeting_id)
 
 
 @router.post(

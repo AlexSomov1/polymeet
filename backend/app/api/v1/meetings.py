@@ -21,7 +21,8 @@ from app.api.errors import (
     ValidationAppError,
     error_responses,
 )
-from app.api.v1.mappers import to_meeting_list_item, to_meeting_out
+from app.api.v1.applications import ApplicationServiceDep
+from app.api.v1.mappers import to_meeting_list_item, to_meeting_out, to_my_application_out
 from app.api.v1.params import Cursor, MeetingId, p95
 from app.schemas.meetings import (
     CategorySlug,
@@ -176,9 +177,18 @@ async def create_meeting(
     responses=error_responses(ValidationAppError, UnauthorizedError, NotFoundError),
 )
 async def get_meeting(
-    meeting_id: MeetingId, viewer: OptionalUser, service: MeetingServiceDep
+    meeting_id: MeetingId,
+    viewer: OptionalUser,
+    service: MeetingServiceDep,
+    applications: ApplicationServiceDep,
 ) -> MeetingOut:
-    return to_meeting_out(await service.get(meeting_id, viewer))
+    meeting = await service.get(meeting_id, viewer)
+    my_application = None
+    if viewer is not None and viewer.id != meeting.organizer_id:
+        application = await applications.get_my_application(meeting.id, viewer)
+        if application is not None:
+            my_application = to_my_application_out(application)
+    return to_meeting_out(meeting, my_application)
 
 
 @router.patch(

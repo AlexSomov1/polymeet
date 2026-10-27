@@ -179,6 +179,7 @@ OPERATIONS = [
         "/api/v1/meetings/{meeting_id}/applications",
         "/api/v1/meetings/1/applications",
         "required",
+        implemented=True,
     ),
     Operation(
         "list_meeting_applications",
@@ -194,6 +195,7 @@ OPERATIONS = [
         "/api/v1/meetings/{meeting_id}/applications/me",
         "/api/v1/meetings/1/applications/me",
         "required",
+        implemented=True,
     ),
     Operation(
         "decide_application",

@@ -1,5 +1,10 @@
+from app.models.application import Application
 from app.models.meeting import Meeting
-from app.schemas.enums import GeoStatus, MeetingStatus
+from app.schemas.applications import (
+    ApplicantOut,
+    ApplicationOut,
+)
+from app.schemas.enums import ApplicationStatus, GeoStatus, MeetingStatus
 from app.schemas.meetings import (
     MeetingListItem,
     MeetingOut,
@@ -57,4 +62,25 @@ def to_meeting_list_item(meeting: Meeting, distance_km: float | None = None) -> 
             id=meeting.organizer.id, display_name=meeting.organizer.display_name
         ),
         distance_km=distance_km,
+    )
+
+
+def to_my_application_out(application: Application) -> MyApplicationOut:
+    return MyApplicationOut(id=application.id, status=ApplicationStatus[application.status.name])
+
+
+def to_application_out(application: Application) -> ApplicationOut:
+    return ApplicationOut(
+        id=application.id,
+        meeting_id=application.meeting_id,
+        status=ApplicationStatus[application.status.name],
+        message=application.message,
+        created_at=application.created_at,
+        decided_at=application.decided_at,
+        user=ApplicantOut(
+            id=application.user.id,
+            display_name=application.user.display_name,
+            attendance_rate=application.user.attendance_rate,
+            attended_count=application.user.attended_count,
+        ),
     )
