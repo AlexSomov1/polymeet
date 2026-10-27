@@ -7,12 +7,18 @@ import pytest
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
+from app.core.config import Settings
+from app.main import create_app
 from app.models.enums import MeetingStatus
 from app.models.user import User
 from app.repositories.meeting_repository import FeedFilters, GeoCircle, MeetingRepository
 from tests.integration.helpers import (
+    REFUSED_REDIS_URL,
+    AuthHeaders,
     CreateMeeting,
     CreateUser,
+    app_client,
+    read_log_records,
 )
 
 FEED = "/api/v1/meetings"
@@ -225,3 +231,48 @@ async def test_feed_queries_use_indexes(
 
     assert "ix_meetings_feed" in feed_plan, feed_plan
     assert "ix_meetings_geo" in geo_plan, geo_plan
+
+
+def _cache_field(capsys: pytest.CaptureFixture[str]) -> list[str | None]:
+    return [
+        record.get("cache")
+        for record in read_log_records(capsys)
+        if record["event"] == "http_request"
+    ]
+
+
+async def test_first_page_is_cached_and_reset_on_publish(
+    client: httpx.AsyncClient,
+    organizer: User,
+    create_meeting: CreateMeeting,
+    auth_headers: AuthHeaders,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    shown = await create_meeting(organizer)
+    draft = await create_meeting(organizer, status=MeetingStatus.DRAFT)
+    read_log_records(capsys)
+
+    assert await feed_ids(client, limit=1) == [shown.id]
+    assert await feed_ids(client, limit=1) == [shown.id]
+    assert _cache_field(capsys) == ["miss", "hit"]
+
+    published = await client.patch(
+        f"{FEED}/{draft.id}", json={"status": "published"}, headers=auth_headers(organizer)
+    )
+    assert published.status_code == 200, published.text
+    page = await feed(client, limit=1)
+    assert await feed_ids(client, cursor=page["next_cursor"], limit=1) == [draft.id]
+    assert set(await feed_ids(client)) == {shown.id, draft.id}
+    # PATCH не трогает кэш ленты, запрос с курсором кэш не использует
+    assert _cache_field(capsys) == [None, "miss", None, "miss"]
+
+
+async def test_feed_works_without_redis(
+    settings: Settings, organizer: User, create_meeting: CreateMeeting
+) -> None:
+    meeting = await create_meeting(organizer)
+    no_redis = settings.model_copy(update={"redis_url": REFUSED_REDIS_URL})
+
+    async with app_client(create_app(no_redis)) as client:
+        assert await feed_ids(client) == [meeting.id]
+        assert await feed_ids(client) == [meeting.id]

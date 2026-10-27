@@ -17,6 +17,7 @@ from app.models.user import User
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.meeting_repository import MeetingRepository
 from app.schemas.meetings import MeetingCreate
+from app.services.feed_cache import FeedCache
 from app.services.geocoding_port import GeocodingPort
 from app.services.meeting_rules import (
     can_view,
@@ -30,11 +31,17 @@ from app.services.meeting_rules import (
 
 
 class MeetingService:
-    def __init__(self, session: AsyncSession, geocoding: GeocodingPort) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        geocoding: GeocodingPort,
+        feed_cache: FeedCache | None = None,
+    ) -> None:
         self._session = session
         self._meetings = MeetingRepository(session)
         self._categories = CategoryRepository(session)
         self._geocoding = geocoding
+        self._feed_cache = feed_cache
 
     async def list_categories(self) -> list[Category]:
         return await self._categories.list_all()
@@ -118,6 +125,7 @@ class MeetingService:
             )
 
         address_changed = "address" in values and values["address"] != meeting.address
+        was_published = meeting.status == MeetingStatus.PUBLISHED
         for field, value in values.items():
             setattr(meeting, field, value)
         cached = True
@@ -128,6 +136,9 @@ class MeetingService:
             meeting.geo_status = GeoStatus.PENDING
             cached = await self._geocoding.resolve_cached(meeting)
         await self._session.commit()
+        # Встреча появилась в ленте, ушла из неё или изменилась в ней: кэш ленты устарел.
+        if self._feed_cache is not None and (was_published or "status" in values):
+            await self._feed_cache.bump()
         if address_changed and not cached:
             await self._geocoding.enqueue(meeting.id)
         return meeting

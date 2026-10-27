@@ -1,4 +1,4 @@
-"""Лента встреч и встречи на карте: проверка параметров, курсор."""
+"""Лента встреч и встречи на карте: проверка параметров, курсор, кэш первой страницы."""
 
 from collections.abc import Callable
 from dataclasses import replace
@@ -13,6 +13,7 @@ from app.models.meeting import Meeting
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.meeting_repository import BBox, FeedFilters, GeoCircle, MeetingRepository
 from app.schemas.meetings import MeetingListItem, MeetingPage
+from app.services.feed_cache import FeedCache
 
 ItemBuilder = Callable[[Meeting, float | None], MeetingListItem]
 
@@ -75,10 +76,13 @@ def _distance_km(distance_m: float | None) -> float | None:
 
 
 class FeedService:
-    def __init__(self, session: AsyncSession, timezone: str) -> None:
+    def __init__(
+        self, session: AsyncSession, timezone: str, feed_cache: FeedCache | None = None
+    ) -> None:
         self._meetings = MeetingRepository(session)
         self._categories = CategoryRepository(session)
         self._timezone = timezone
+        self._feed_cache = feed_cache
 
     async def _filters(
         self, category: str | None, day: date | None, has_free_places: bool
@@ -141,16 +145,37 @@ class FeedService:
         circle = geo_circle(lat, lon, radius_km)
         after = _decode_feed_cursor(cursor) if cursor is not None else None
 
-        return await self._feed_page(
-            category=category,
-            day=day,
-            has_free_places=has_free_places,
-            q=q,
-            circle=circle,
-            after=after,
-            limit=limit,
-            build_item=build_item,
-        )
+        async def load() -> MeetingPage:
+            return await self._feed_page(
+                category=category,
+                day=day,
+                has_free_places=has_free_places,
+                q=q,
+                circle=circle,
+                after=after,
+                limit=limit,
+                build_item=build_item,
+            )
+
+        # Кэшируется только первая страница: курсор зависит от данных и почти не повторяется.
+        if self._feed_cache is None or cursor is not None:
+            return await load()
+        params: dict[str, object] = {
+            "category": category,
+            "date": day.isoformat() if day is not None else None,
+            "lat": lat,
+            "lon": lon,
+            "radius_km": radius_km,
+            "has_free_places": has_free_places,
+            "q": q,
+            "limit": limit,
+        }
+        cached = await self._feed_cache.get(params)
+        if cached is not None:
+            return MeetingPage.model_validate_json(cached)
+        page = await load()
+        await self._feed_cache.set(params, page.model_dump_json())
+        return page
 
     async def list_on_map(
         self,

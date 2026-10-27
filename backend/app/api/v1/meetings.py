@@ -7,6 +7,7 @@ from app.api.deps import (
     OPTIONAL_AUTH,
     CurrentUser,
     OptionalUser,
+    RedisDep,
     SessionDep,
     SettingsDep,
     get_geocoding,
@@ -31,6 +32,7 @@ from app.schemas.meetings import (
     MeetingPage,
     MeetingUpdate,
 )
+from app.services.feed_cache import FeedCache
 from app.services.feed_service import FeedService
 from app.services.geocoding_port import GeocodingPort
 from app.services.meeting_service import MeetingService
@@ -38,17 +40,28 @@ from app.services.meeting_service import MeetingService
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 
+def get_feed_cache(redis: RedisDep, settings: SettingsDep) -> FeedCache:
+    return FeedCache(redis, settings.feed_cache_ttl_sec)
+
+
+FeedCacheDep = Annotated[FeedCache, Depends(get_feed_cache)]
+
+
 def get_meeting_service(
-    session: SessionDep, geocoding: Annotated[GeocodingPort, Depends(get_geocoding)]
+    session: SessionDep,
+    geocoding: Annotated[GeocodingPort, Depends(get_geocoding)],
+    feed_cache: FeedCacheDep,
 ) -> MeetingService:
-    return MeetingService(session, geocoding)
+    return MeetingService(session, geocoding, feed_cache)
 
 
 MeetingServiceDep = Annotated[MeetingService, Depends(get_meeting_service)]
 
 
-def get_feed_service(session: SessionDep, settings: SettingsDep) -> FeedService:
-    return FeedService(session, settings.app_timezone)
+def get_feed_service(
+    session: SessionDep, settings: SettingsDep, feed_cache: FeedCacheDep
+) -> FeedService:
+    return FeedService(session, settings.app_timezone, feed_cache)
 
 
 FeedServiceDep = Annotated[FeedService, Depends(get_feed_service)]

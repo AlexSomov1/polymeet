@@ -1,8 +1,10 @@
 from datetime import UTC, date, datetime
 
 import pytest
+from fakeredis import FakeAsyncRedis, FakeServer
 
 from app.core.errors import ValidationAppError
+from app.services.feed_cache import FeedCache, params_hash
 from app.services.feed_service import day_bounds, geo_circle, parse_bbox
 
 
@@ -67,3 +69,43 @@ def test_day_is_local_midnight_to_midnight_in_utc() -> None:
     # 23:30 по Москве 13-го — ещё эти сутки, 00:30 14-го — уже следующие
     assert start <= datetime(2030, 10, 13, 20, 30, tzinfo=UTC) < end
     assert not datetime(2030, 10, 13, 21, 30, tzinfo=UTC) < end
+
+
+def test_cache_key_ignores_order_and_none_values() -> None:
+    base = {"category": "games", "limit": 20, "has_free_places": False}
+
+    assert params_hash(base) == params_hash(dict(reversed(base.items())))
+    assert params_hash(base) == params_hash({**base, "q": None, "lat": None})
+    assert params_hash(base) != params_hash({**base, "category": "sport"})
+    assert params_hash(base) != params_hash({**base, "has_free_places": True})
+    assert params_hash(base) != params_hash({**base, "q": "настолки"})
+
+
+async def test_cache_miss_store_hit_and_bump() -> None:
+    cache = FeedCache(FakeAsyncRedis(decode_responses=True), ttl_sec=30)
+    params = {"category": "games", "limit": 20}
+
+    assert await cache.get(params) is None
+    await cache.set(params, '{"items":[],"next_cursor":null}')
+    assert await cache.get(params) == '{"items":[],"next_cursor":null}'
+
+    await cache.bump()
+    assert await cache.get(params) is None
+
+
+async def test_cache_entry_has_ttl() -> None:
+    redis = FakeAsyncRedis(decode_responses=True)
+    await FeedCache(redis, ttl_sec=30).set({"limit": 20}, "{}")
+
+    [key] = await redis.keys("feed:v0:*")
+    assert 0 < await redis.ttl(key) <= 30
+
+
+async def test_cache_without_redis_is_a_miss_not_an_error() -> None:
+    server = FakeServer()
+    server.connected = False
+    cache = FeedCache(FakeAsyncRedis(server=server, decode_responses=True), ttl_sec=30)
+
+    assert await cache.get({"limit": 20}) is None
+    await cache.set({"limit": 20}, "{}")
+    await cache.bump()
