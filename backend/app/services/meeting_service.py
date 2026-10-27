@@ -17,6 +17,7 @@ from app.models.user import User
 from app.repositories.category_repository import CategoryRepository
 from app.repositories.meeting_repository import MeetingRepository
 from app.schemas.meetings import MeetingCreate
+from app.services.application_service import promote_waitlist
 from app.services.feed_cache import FeedCache
 from app.services.geocoding_port import GeocodingPort
 from app.services.meeting_rules import (
@@ -126,8 +127,12 @@ class MeetingService:
 
         address_changed = "address" in values and values["address"] != meeting.address
         was_published = meeting.status == MeetingStatus.PUBLISHED
+        old_capacity = meeting.capacity
         for field, value in values.items():
             setattr(meeting, field, value)
+        if meeting.capacity > old_capacity:
+            # Строка встречи заблокирована get_for_update: новые места получает лист ожидания
+            await promote_waitlist(self._session, meeting)
         cached = True
         if address_changed:
             meeting.lat = None

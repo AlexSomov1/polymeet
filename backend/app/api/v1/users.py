@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, Query
 from app.api.deps import OPTIONAL_AUTH, CurrentUser, OptionalUser, SessionDep
 from app.api.errors import (
     NotFoundError,
-    NotImplementedAppError,
     UnauthorizedError,
     ValidationAppError,
     error_responses,
 )
-from app.api.v1.mappers import to_meeting_list_item
+from app.api.v1.applications import ApplicationServiceDep, to_model_status
+from app.api.v1.mappers import to_meeting_list_item, to_my_application_item
 from app.api.v1.meetings import MeetingServiceDep
 from app.api.v1.params import Cursor, PageLimit, UserId, p95
 from app.schemas.applications import MyApplicationPage
@@ -60,15 +60,22 @@ async def list_my_meetings(
     "/me/applications",
     summary="Мои заявки",
     description=p95(200, "Мои заявки с краткой информацией о встрече; новые сначала."),
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
 async def list_my_applications(
     user: CurrentUser,
+    service: ApplicationServiceDep,
     status: Annotated[ApplicationStatus | None, Query(description="Фильтр по статусу")] = None,
     cursor: Cursor = None,
     limit: PageLimit = 20,
 ) -> MyApplicationPage:
-    raise NotImplementedAppError()
+    applications, next_cursor = await service.list_mine(
+        user, to_model_status(status), cursor, limit
+    )
+    return MyApplicationPage(
+        items=[to_my_application_item(application) for application in applications],
+        next_cursor=next_cursor,
+    )
 
 
 @router.get(
