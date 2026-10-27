@@ -3,7 +3,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import OPTIONAL_AUTH, CurrentUser, OptionalUser, SessionDep, get_geocoding
+from app.api.deps import (
+    OPTIONAL_AUTH,
+    CurrentUser,
+    OptionalUser,
+    RedisDep,
+    SessionDep,
+    SettingsDep,
+    get_geocoding,
+)
 from app.api.errors import (
     ForbiddenError,
     InvalidTransitionError,
@@ -13,7 +21,7 @@ from app.api.errors import (
     ValidationAppError,
     error_responses,
 )
-from app.api.v1.mappers import to_meeting_out
+from app.api.v1.mappers import to_meeting_list_item, to_meeting_out
 from app.api.v1.params import Cursor, MeetingId, p95
 from app.schemas.meetings import (
     CategorySlug,
@@ -24,19 +32,39 @@ from app.schemas.meetings import (
     MeetingPage,
     MeetingUpdate,
 )
+from app.services.feed_cache import FeedCache
+from app.services.feed_service import FeedService
 from app.services.geocoding_port import GeocodingPort
 from app.services.meeting_service import MeetingService
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 
+def get_feed_cache(redis: RedisDep, settings: SettingsDep) -> FeedCache:
+    return FeedCache(redis, settings.feed_cache_ttl_sec)
+
+
+FeedCacheDep = Annotated[FeedCache, Depends(get_feed_cache)]
+
+
 def get_meeting_service(
-    session: SessionDep, geocoding: Annotated[GeocodingPort, Depends(get_geocoding)]
+    session: SessionDep,
+    geocoding: Annotated[GeocodingPort, Depends(get_geocoding)],
+    feed_cache: FeedCacheDep,
 ) -> MeetingService:
-    return MeetingService(session, geocoding)
+    return MeetingService(session, geocoding, feed_cache)
 
 
 MeetingServiceDep = Annotated[MeetingService, Depends(get_meeting_service)]
+
+
+def get_feed_service(
+    session: SessionDep, settings: SettingsDep, feed_cache: FeedCacheDep
+) -> FeedService:
+    return FeedService(session, settings.app_timezone, feed_cache)
+
+
+FeedServiceDep = Annotated[FeedService, Depends(get_feed_service)]
 
 BBOX_PATTERN = r"^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$"
 
@@ -57,10 +85,11 @@ FreePlacesFilter = Annotated[bool, Query(description="Только встреч�
         "`lat`, `lon` и `radius_km` задаются только вместе; тогда в ответе есть `distance_km`.",
     ),
     openapi_extra=OPTIONAL_AUTH,
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
 async def list_meetings(
     viewer: OptionalUser,
+    service: FeedServiceDep,
     category: CategoryFilter = None,
     day: DateFilter = None,
     lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
@@ -71,7 +100,18 @@ async def list_meetings(
     cursor: Cursor = None,
     limit: Annotated[int, Query(ge=1, le=20, description="Размер страницы")] = 20,
 ) -> MeetingPage:
-    raise NotImplementedAppError()
+    return await service.list_feed(
+        category=category,
+        day=day,
+        lat=lat,
+        lon=lon,
+        radius_km=radius_km,
+        has_free_places=has_free_places,
+        q=q,
+        cursor=cursor,
+        limit=limit,
+        build_item=to_meeting_list_item,
+    )
 
 
 @router.get(
@@ -83,10 +123,11 @@ async def list_meetings(
         "по времени начала, без пагинации.",
     ),
     openapi_extra=OPTIONAL_AUTH,
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
 async def list_meetings_on_map(
     viewer: OptionalUser,
+    service: FeedServiceDep,
     bbox: Annotated[
         str,
         Query(
@@ -100,7 +141,14 @@ async def list_meetings_on_map(
     has_free_places: FreePlacesFilter = False,
     limit: Annotated[int, Query(ge=1, le=200, description="Максимум точек")] = 200,
 ) -> list[MeetingListItem]:
-    raise NotImplementedAppError()
+    return await service.list_on_map(
+        bbox=bbox,
+        category=category,
+        day=day,
+        has_free_places=has_free_places,
+        limit=limit,
+        build_item=to_meeting_list_item,
+    )
 
 
 @router.post(

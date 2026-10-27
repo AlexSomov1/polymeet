@@ -4,7 +4,7 @@ import io
 import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, Protocol
 
@@ -18,6 +18,8 @@ from pydantic import BaseModel, Field
 from app.api.deps import CurrentUser, OptionalUser
 from app.core.config import Settings
 from app.core.logging import bind_request_context
+from app.models.enums import MeetingStatus
+from app.models.meeting import Meeting
 from app.models.user import User
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -36,6 +38,29 @@ class CreateUser(Protocol):
         display_name: str | None = None,
         role: int = 0,
     ) -> User: ...
+
+
+class CreateMeeting(Protocol):
+    """Фикстура ``create_meeting``: встреча создаётся прямо в БД, минуя API.
+
+    Так можно получить опубликованную встречу в прошлом или с заданным ``accepted_count``.
+    """
+
+    async def __call__(
+        self,
+        organizer: User,
+        *,
+        status: MeetingStatus = MeetingStatus.PUBLISHED,
+        starts_at: datetime | None = None,
+        capacity: int = 10,
+        accepted_count: int = 0,
+        auto_accept: bool = False,
+        category_id: int = 1,
+        lat: float | None = None,
+        lon: float | None = None,
+        title: str = "Встреча",
+        description: str = "",
+    ) -> Meeting: ...
 
 
 class AuthHeaders(Protocol):

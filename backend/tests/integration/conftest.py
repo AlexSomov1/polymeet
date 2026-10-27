@@ -2,7 +2,7 @@
 
 Адреса берутся из ``TEST_DATABASE_URL`` и ``TEST_REDIS_URL``; если переменных нет,
 сервисы поднимаются через testcontainers. Публичный интерфейс для тестов
-следующих этапов — фикстуры ``client``, ``create_user`` и ``auth_headers``.
+следующих этапов — фикстуры ``client``, ``create_user``, ``create_meeting`` и ``auth_headers``.
 """
 
 import asyncio
@@ -11,7 +11,7 @@ import os
 import sys
 from collections.abc import AsyncIterator, Iterator
 from contextlib import ExitStack
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -28,12 +28,16 @@ from app.core.db import create_engine
 from app.core.redis import create_redis
 from app.core.security import create_token, hash_password
 from app.main import create_app
+from app.models.enums import GeoStatus, MeetingStatus
+from app.models.meeting import Meeting
 from app.models.user import User
+from app.repositories.meeting_repository import MeetingRepository
 from app.repositories.user_repository import UserRepository
 from tests.conftest import make_settings
 from tests.integration.helpers import (
     DEFAULT_PASSWORD,
     AuthHeaders,
+    CreateMeeting,
     CreateUser,
     alembic_config,
     app_client,
@@ -152,6 +156,46 @@ def create_user(engine: AsyncEngine, settings: Settings) -> CreateUser:
         return user
 
     return _create_user
+
+
+@pytest.fixture
+def create_meeting(engine: AsyncEngine) -> CreateMeeting:
+    async def _create_meeting(
+        organizer: User,
+        *,
+        status: MeetingStatus = MeetingStatus.PUBLISHED,
+        starts_at: datetime | None = None,
+        capacity: int = 10,
+        accepted_count: int = 0,
+        auto_accept: bool = False,
+        category_id: int = 1,
+        lat: float | None = None,
+        lon: float | None = None,
+        title: str = "Встреча",
+        description: str = "",
+    ) -> Meeting:
+        meeting = Meeting(
+            organizer_id=organizer.id,
+            category_id=category_id,
+            status=status,
+            geo_status=GeoStatus.PENDING if lat is None else GeoStatus.RESOLVED,
+            title=title,
+            description=description,
+            starts_at=starts_at or datetime.now(UTC) + timedelta(days=7),
+            duration_minutes=90,
+            address="Санкт-Петербург, Политехническая ул., 29",
+            lat=lat,
+            lon=lon,
+            capacity=capacity,
+            accepted_count=accepted_count,
+            auto_accept=auto_accept,
+        )
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            await MeetingRepository(session).add(meeting)
+            await session.commit()
+        return meeting
+
+    return _create_meeting
 
 
 @pytest.fixture

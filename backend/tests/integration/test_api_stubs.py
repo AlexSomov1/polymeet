@@ -52,7 +52,7 @@ async def test_stub_with_token_reaches_handler(
 @pytest.mark.parametrize(
     ("url", "expected_status"),
     [
-        ("/api/v1/meetings/map?bbox=30.25,59.90,30.45,60.05", 501),
+        ("/api/v1/meetings/map?bbox=30.25,59.90,30.45,60.05", 200),
         ("/api/v1/users/me", 200),
         ("/api/v1/users/me/meetings", 200),
     ],
