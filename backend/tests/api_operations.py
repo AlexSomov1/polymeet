@@ -128,6 +128,7 @@ OPERATIONS = [
                 "limit": 20,
             }
         },
+        implemented=True,
     ),
     Operation(
         "list_meetings_on_map",

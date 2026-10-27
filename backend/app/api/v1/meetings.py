@@ -3,7 +3,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import OPTIONAL_AUTH, CurrentUser, OptionalUser, SessionDep, get_geocoding
+from app.api.deps import (
+    OPTIONAL_AUTH,
+    CurrentUser,
+    OptionalUser,
+    SessionDep,
+    SettingsDep,
+    get_geocoding,
+)
 from app.api.errors import (
     ForbiddenError,
     InvalidTransitionError,
@@ -13,7 +20,7 @@ from app.api.errors import (
     ValidationAppError,
     error_responses,
 )
-from app.api.v1.mappers import to_meeting_out
+from app.api.v1.mappers import to_meeting_list_item, to_meeting_out
 from app.api.v1.params import Cursor, MeetingId, p95
 from app.schemas.meetings import (
     CategorySlug,
@@ -24,6 +31,7 @@ from app.schemas.meetings import (
     MeetingPage,
     MeetingUpdate,
 )
+from app.services.feed_service import FeedService
 from app.services.geocoding_port import GeocodingPort
 from app.services.meeting_service import MeetingService
 
@@ -37,6 +45,13 @@ def get_meeting_service(
 
 
 MeetingServiceDep = Annotated[MeetingService, Depends(get_meeting_service)]
+
+
+def get_feed_service(session: SessionDep, settings: SettingsDep) -> FeedService:
+    return FeedService(session, settings.app_timezone)
+
+
+FeedServiceDep = Annotated[FeedService, Depends(get_feed_service)]
 
 BBOX_PATTERN = r"^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$"
 
@@ -57,10 +72,11 @@ FreePlacesFilter = Annotated[bool, Query(description="Только встреч�
         "`lat`, `lon` и `radius_km` задаются только вместе; тогда в ответе есть `distance_km`.",
     ),
     openapi_extra=OPTIONAL_AUTH,
-    responses=error_responses(ValidationAppError, UnauthorizedError, NotImplementedAppError),
+    responses=error_responses(ValidationAppError, UnauthorizedError),
 )
 async def list_meetings(
     viewer: OptionalUser,
+    service: FeedServiceDep,
     category: CategoryFilter = None,
     day: DateFilter = None,
     lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
@@ -71,7 +87,18 @@ async def list_meetings(
     cursor: Cursor = None,
     limit: Annotated[int, Query(ge=1, le=20, description="Размер страницы")] = 20,
 ) -> MeetingPage:
-    raise NotImplementedAppError()
+    return await service.list_feed(
+        category=category,
+        day=day,
+        lat=lat,
+        lon=lon,
+        radius_km=radius_km,
+        has_free_places=has_free_places,
+        q=q,
+        cursor=cursor,
+        limit=limit,
+        build_item=to_meeting_list_item,
+    )
 
 
 @router.get(
