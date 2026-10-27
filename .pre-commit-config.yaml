@@ -1,0 +1,10 @@
+# Установка: pip install pre-commit && pre-commit install
+# Настройки ruff берутся из backend/pyproject.toml.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.0
+    hooks:
+      - id: ruff
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
