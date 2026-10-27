@@ -4,7 +4,6 @@ import { ProfileForm } from "@/widgets/settings-form/ProfileForm";
 import { NotificationsForm } from "@/widgets/settings-form/NotificationsForm";
 import { MOCK_USER } from "@/features/user/mocks";
 import type { UserProfile } from "@/features/user/types";
-import { VerificationForm } from "@/widgets/settings-form/VerificationForm";
 import { PrivacyForm } from "@/widgets/settings-form/PrivacyForm";
 import { SecurityForm } from "@/widgets/settings-form/SecurityForm";
 
@@ -55,10 +54,6 @@ export function ModerationPage() {
               settings={draftUser.settings}
               onChange={handleSettingsChange}
             />
-          )}
-
-          {activeTab === "verification" && (
-            <VerificationForm user={draftUser} />
           )}
 
           {activeTab === "privacy" && (

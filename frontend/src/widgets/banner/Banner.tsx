@@ -11,7 +11,7 @@ export function Banner({ query, onQueryChange }: BannerProps) {
     <section
       role="search"
       className="relative overflow-hidden rounded-2xl bg-cover bg-center"
-      style={{ backgroundImage: "url(/banner.png)" }}
+      style={{ backgroundImage: "url(/banner2.png)" }}
     >
       {/* Readability overlay — darkens the left where text sits */}
       <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent" />

@@ -44,15 +44,18 @@ export function FeedPage() {
             <p className="rounded-xl border border-dashed border-white/15 p-10 text-center text-sm text-slate-500">
               Ничего не найдено. Попробуйте ослабить фильтры.
             </p>
-          ) : view === "list" ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visibleMeetings.map((m) => (
-                <MeetingCard key={m.id} meeting={m} />
-              ))}
-            </div>
-          ) : (
-            <MapView meetings={visibleMeetings} />
-          )}
+          ) :view === "list" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {visibleMeetings.map((meeting) => (
+                  <MeetingCard key={meeting.id} meeting={meeting} />
+                ))}
+              </div>
+            ) : (
+              <MapView
+                meetings={visibleMeetings}
+                onMeetingClick={(id) => console.log("clicked meeting", id)}
+              />
+            )}
         </section>
       </div>
     </div>

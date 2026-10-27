@@ -1,4 +1,4 @@
-import { User, GraduationCap, Bell, MapPin, Shield, LogOut } from "lucide-react";
+import { User, Bell, MapPin, Shield, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SettingsTab =
@@ -10,7 +10,6 @@ export type SettingsTab =
 
 const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Профиль", icon: User },
-  { id: "verification", label: "Верификация студента", icon: GraduationCap },
   { id: "notifications", label: "Уведомления", icon: Bell },
   { id: "privacy", label: "Приватность и Геолокация", icon: MapPin },
   { id: "security", label: "Безопасность", icon: Shield },
